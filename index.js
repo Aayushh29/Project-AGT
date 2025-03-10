@@ -35,6 +35,9 @@ async function initMap() {
   }
 }
 
+let currentDestLat = null;
+let currentDestLng = null;
+
 window.getDirections = function (destLat, destLng) {
   if (!destLat || !destLng) {
     console.error("Destination coordinates are missing!", destLat, destLng);
@@ -42,8 +45,11 @@ window.getDirections = function (destLat, destLng) {
     return;
   }
   clearMarkers();
-
   console.log("Getting Directions to:", destLat, destLng);
+
+  // Store current destination for automatic updates
+  currentDestLat = destLat;
+  currentDestLng = destLng;
 
   const start = new google.maps.LatLng(lat, lng);
   const end = new google.maps.LatLng(destLat, destLng);
@@ -81,6 +87,13 @@ window.getDirections = function (destLat, destLng) {
     }
   });
 };
+
+// Automatically update route when the user changes travel mode
+document.getElementById("routeType").addEventListener("change", function () {
+  if (currentDestLat !== null && currentDestLng !== null) {
+    getDirections(currentDestLat, currentDestLng);
+  }
+});
 
 
 function geocodeLatLng(geocoder, map, infowindow) {
