@@ -63,23 +63,28 @@ function geocodeLatLng(geocoder, map, infowindow) {
 
     );
 }
+
 let markers = []; // Global array to store markers
+let infowindow; // Global info window
 
 async function nearbySearch() {
-  // Import required libraries
   const { Place, SearchNearbyRankPreference } = await google.maps.importLibrary("places");
   const { AdvancedMarkerElement } = await google.maps.importLibrary("marker");
+  const { InfoWindow } = await google.maps.importLibrary("maps");
+
+  // Initialize InfoWindow
+  infowindow = new InfoWindow();
 
   // Restrict within the map viewport.
   let center = new google.maps.LatLng(lat, lng);
   const request = {
-    fields: ["displayName", "location", "businessStatus"],
+    fields: ["displayName", "location", "businessStatus", "types", "rating", "photos"],
     locationRestriction: {
       center: center,
-      radius: parseInt(document.getElementById("radius").value, 10) * 1000,
+      radius: parseInt(document.getElementById("radius").value, 10) * 1000, // Convert km to meters
     },
     includedPrimaryTypes: ["restaurant"],
-    maxResultCount: 5,
+    maxResultCount: 10, // Get more results
     rankPreference: SearchNearbyRankPreference.POPULARITY,
     language: "en-US",
     region: "us",
@@ -107,11 +112,35 @@ async function nearbySearch() {
 
       markers.push(marker); // Store marker in the array
       bounds.extend(place.location);
+
+      // Extract photo_reference and construct the image URL
+      let imageUrl = "";
+      if (place.photos && place.photos.length > 0) {
+        const photoReference = place.photos[0].photoReference || place.photos[0].photo_reference; // Some API versions use different field names
+        if (photoReference) {
+          imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=YOUR_GOOGLE_MAPS_API_KEY`;
+        }
+      }
+
+      // Add click event to show details in InfoWindow
+      marker.addListener("click", () => {
+        const content = `
+          <div style="width: 250px; text-align: center;">
+            <h3>${place.displayName}</h3>
+            ${imageUrl ? `<img src="${imageUrl}" alt="Restaurant Image" style="width: 100%; border-radius: 10px; margin-bottom: 10px;">` : "<p>No Image Available</p>"}
+            <p><strong>Type:</strong> ${place.types ? place.types.join(", ") : "Not available"}</p>
+            <p><strong>Rating:</strong> ${place.rating ? place.rating : "No rating"}</p>
+          </div>
+        `;
+        infowindow.setContent(content);
+        infowindow.setPosition(place.location);
+        infowindow.open(map);
+      });
     });
 
     map.fitBounds(bounds);
   } else {
-    console.log("No results");
+    console.log("No results found");
   }
 }
 
