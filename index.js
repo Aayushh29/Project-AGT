@@ -35,26 +35,53 @@ async function initMap() {
   }
 }
 
+window.getDirections = function (destLat, destLng) {
+  if (!destLat || !destLng) {
+    console.error("Destination coordinates are missing!", destLat, destLng);
+    alert("Error: Destination coordinates not found.");
+    return;
+  }
+  clearMarkers();
 
-// Function to get directions from user's location to restaurant
-window.getDirections = function(destLat, destLng) {
+  console.log("Getting Directions to:", destLat, destLng);
+
   const start = new google.maps.LatLng(lat, lng);
   const end = new google.maps.LatLng(destLat, destLng);
+
+  // Get selected route type from the dropdown
+  const routeType = document.getElementById("routeType").value;
 
   const request = {
     origin: start,
     destination: end,
-    travelMode: google.maps.TravelMode.DRIVING, // You can change this to WALKING, BICYCLING, or TRANSIT
+    travelMode: google.maps.TravelMode[routeType], // Uses the selected travel mode
   };
 
+  // Customizing the route to stand out
+  directionsRenderer.setOptions({
+    polylineOptions: {
+      strokeColor: "#0000FF", // Blue color
+      strokeOpacity: 0.8, // Slightly transparent
+      strokeWeight: 6, // Thicker line for visibility
+    },
+    suppressMarkers: false, // Keep default markers
+  });
+
   directionsService.route(request, function (result, status) {
-    if (status == google.maps.DirectionsStatus.OK) {
+    if (status === google.maps.DirectionsStatus.OK) {
       directionsRenderer.setDirections(result);
+
+      // Close the InfoWindow when "Get Directions" is clicked
+      if (infowindow) {
+        infowindow.close();
+      }
     } else {
+      console.error("Could not get directions:", status);
       alert("Could not get directions: " + status);
     }
   });
 };
+
 
 function geocodeLatLng(geocoder, map, infowindow) {
   // const input = document.getElementById("latlng").value;
@@ -149,7 +176,7 @@ async function nearbySearch() {
       if (place.photos && place.photos.length > 0) {
         const photoReference = place.photos[0].photoReference || place.photos[0].photo_reference;
         if (photoReference) {
-          imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=ADD_API_KEY`;
+          imageUrl = `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${photoReference}&key=ADD_KEY`;
         }
       }
 
