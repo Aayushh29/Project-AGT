@@ -158,7 +158,6 @@ async function nearbySearch() {
     const bounds = new LatLngBounds();
 
     places.forEach((place) => {
-      // Ensure proper extraction of lat, lng
       const position = place.location;
       const destLat = position.lat();
       const destLng = position.lng();
@@ -183,12 +182,23 @@ async function nearbySearch() {
       marker.addListener("click", () => {
         console.log(`Clicked Marker: ${place.displayName}, lat: ${destLat}, lng: ${destLng}`);
 
+        // Ensure lat/lng are numbers
+        const userLatLng = new google.maps.LatLng(parseFloat(lat), parseFloat(lng));
+        const restaurantLatLng = new google.maps.LatLng(parseFloat(destLat), parseFloat(destLng));
+
+        // Calculate the correct distance
+        const distanceMeters = google.maps.geometry.spherical.computeDistanceBetween(userLatLng, restaurantLatLng);
+        const distanceKm = (distanceMeters / 1000).toFixed(2); // Convert meters to km
+
+        console.log(`Calculated Distance: ${distanceKm} km`);
+
         const content = `
           <div style="width: 250px; text-align: center;">
             <h3>${place.displayName}</h3>
             ${imageUrl ? `<img src="${imageUrl}" alt="Restaurant Image" style="width: 100%; border-radius: 10px; margin-bottom: 10px;">` : "<p>No Image Available</p>"}
             <p><strong>Type:</strong> ${place.types ? place.types.join(", ") : "Not available"}</p>
             <p><strong>Rating:</strong> ${place.rating ? place.rating : "No rating"}</p>
+            <p><strong>Distance:</strong> ${distanceKm} km</p>
             <button onclick="getDirections(${destLat}, ${destLng})" style="padding: 10px; margin-top: 10px; background-color: blue; color: white; border: none; border-radius: 5px; cursor: pointer;">Get Directions</button>
           </div>
         `;
@@ -203,6 +213,8 @@ async function nearbySearch() {
     console.log("No results found");
   }
 }
+
+
 
 // Function to remove all existing markers from the map
 function clearMarkers() {
@@ -237,4 +249,22 @@ function showPosition(position) {
 
   lat = position.coords.latitude;
   lng = position.coords.longitude;
+}
+function getHaversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371; // Earth's radius in km
+  const dLat = toRadians(lat2 - lat1);
+  const dLng = toRadians(lng2 - lng1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return (R * c).toFixed(2); // Returns distance in km with 2 decimal places
+}
+
+function toRadians(deg) {
+  return deg * (Math.PI / 180);
 }
