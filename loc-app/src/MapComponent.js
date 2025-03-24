@@ -9,6 +9,8 @@ const MapComponent = () => {
   const [googleReady, setGoogleReady] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [openNow, setOpenNow] = useState(false);
+  const [showRadius, setShowRadius] = useState(true);
+  const [visiblePlaces, setVisiblePlaces] = useState([]);
   const markersRef = useRef([]);
   const directionsRendererRef = useRef(null);
   const destinationRef = useRef(null);
@@ -16,6 +18,7 @@ const MapComponent = () => {
   const infowindowRef = useRef(null);
   const autocompleteRef = useRef(null);
   const [routeSummary, setRouteSummary] = useState(null);
+  const circleRef = useRef(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -76,7 +79,7 @@ const MapComponent = () => {
     if (latLngRef.current && mapRefObject.current) {
       searchNearby(mapRefObject.current, latLngRef.current);
     }
-  }, [minRating, openNow]);
+  }, [minRating, openNow, radius, showRadius]);
 
   const getLocation = () => {
     if (!googleReady) {
@@ -116,7 +119,27 @@ const MapComponent = () => {
     infowindowRef.current = iw;
     mapRefObject.current = mapObj;
 
+    drawCircle(mapObj, coords);
     searchNearby(mapObj, coords);
+  };
+
+  const drawCircle = (mapObj, center) => {
+    const gmaps = window.google.maps;
+    if (circleRef.current) {
+      circleRef.current.setMap(null);
+    }
+    if (showRadius) {
+      circleRef.current = new gmaps.Circle({
+        strokeColor: "#007bff",
+        strokeOpacity: 0.8,
+        strokeWeight: 2,
+        fillColor: "#007bff",
+        fillOpacity: 0.2,
+        map: mapObj,
+        center: center,
+        radius: radius * 1000
+      });
+    }
   };
 
   const searchNearby = (mapObj, coords) => {
@@ -134,14 +157,23 @@ const MapComponent = () => {
     }
 
     clearMarkers();
+    drawCircle(mapObj, coords);
 
     service.nearbySearch(request, (results, status) => {
       if (status === gmaps.places.PlacesServiceStatus.OK) {
         const bounds = new gmaps.LatLngBounds();
         const newMarkers = [];
+        const visible = [];
 
         results.forEach((place) => {
           if (place.rating < minRating) return;
+
+          const distance = gmaps.geometry.spherical.computeDistanceBetween(
+            new gmaps.LatLng(coords.lat, coords.lng),
+            place.geometry.location
+          ) / 1000;
+
+          if (distance > radius) return;
 
           const position = place.geometry.location;
 
@@ -156,66 +188,16 @@ const MapComponent = () => {
             }
           });
 
-          marker.addListener("click", () => {
-            if (!latLngRef.current) {
-              alert("Please click 'Locate Me' first.");
-              return;
-            }
+          marker.addListener("click", () => openInfoWindow(place, position));
 
-            const directionsService = new gmaps.DirectionsService();
-
-            directionsService.route(
-              {
-                origin: new gmaps.LatLng(latLngRef.current.lat, latLngRef.current.lng),
-                destination: position,
-                travelMode: gmaps.TravelMode[routeType]
-              },
-              (result, status) => {
-                if (status === gmaps.DirectionsStatus.OK) {
-                  const leg = result.routes[0].legs[0];
-
-                  const stars = place.rating
-                    ? '⭐'.repeat(Math.floor(place.rating)) + ` (${place.rating.toFixed(1)})`
-                    : 'No rating';
-
-                  const contentDiv = document.createElement("div");
-                  contentDiv.style.width = "250px";
-                  contentDiv.style.textAlign = "center";
-
-                  const name = document.createElement("h3");
-                  name.innerText = place.name;
-
-                  const rating = document.createElement("p");
-                  rating.innerHTML = `<strong>Rating:</strong> ${stars}`;
-
-                  const dist = document.createElement("p");
-                  dist.innerHTML = `<strong>ETA:</strong> ${leg.distance.text}, ${leg.duration.text}`;
-
-                  const addr = document.createElement("p");
-                  addr.innerHTML = `<strong>Address:</strong> ${place.vicinity || 'N/A'}`;
-
-                  const btn = document.createElement("button");
-                  btn.innerText = "Get Directions";
-                  btn.style = "padding: 10px; margin-top: 10px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer;";
-                  btn.addEventListener("click", () => {
-                    console.log("🧭 Directions button clicked");
-                    getDirections(position.lat(), position.lng());
-                  });
-
-                  contentDiv.appendChild(name);
-                  contentDiv.appendChild(rating);
-                  contentDiv.appendChild(dist);
-                  contentDiv.appendChild(addr);
-                  contentDiv.appendChild(btn);
-
-                  infowindowRef.current.setContent(contentDiv);
-                  infowindowRef.current.setPosition(position);
-                  infowindowRef.current.open(mapObj);
-                } else {
-                  alert("Failed to fetch ETA for popup: " + status);
-                }
-              }
-            );
+          visible.push({
+            name: place.name,
+            address: place.vicinity,
+            rating: place.rating,
+            distance: distance.toFixed(2),
+            marker: marker,
+            place: place,
+            position: position
           });
 
           newMarkers.push(marker);
@@ -223,11 +205,75 @@ const MapComponent = () => {
         });
 
         markersRef.current = newMarkers;
+        setVisiblePlaces(visible);
         mapObj.fitBounds(bounds);
       } else {
         alert("No nearby restaurants found.");
       }
     });
+  };
+
+  const openInfoWindow = (place, position) => {
+    const gmaps = window.google.maps;
+    if (!latLngRef.current) {
+      alert("Please click 'Locate Me' first.");
+      return;
+    }
+
+    const directionsService = new gmaps.DirectionsService();
+
+    directionsService.route(
+      {
+        origin: new gmaps.LatLng(latLngRef.current.lat, latLngRef.current.lng),
+        destination: position,
+        travelMode: gmaps.TravelMode[routeType]
+      },
+      (result, status) => {
+        if (status === gmaps.DirectionsStatus.OK) {
+          const leg = result.routes[0].legs[0];
+
+          const stars = place.rating
+            ? '⭐'.repeat(Math.floor(place.rating)) + ` (${place.rating.toFixed(1)})`
+            : 'No rating';
+
+          const contentDiv = document.createElement("div");
+          contentDiv.style.width = "250px";
+          contentDiv.style.textAlign = "center";
+
+          const name = document.createElement("h3");
+          name.innerText = place.name;
+
+          const rating = document.createElement("p");
+          rating.innerHTML = `<strong>Rating:</strong> ${stars}`;
+
+          const dist = document.createElement("p");
+          dist.innerHTML = `<strong>ETA:</strong> ${leg.distance.text}, ${leg.duration.text}`;
+
+          const addr = document.createElement("p");
+          addr.innerHTML = `<strong>Address:</strong> ${place.vicinity || 'N/A'}`;
+
+          const btn = document.createElement("button");
+          btn.innerText = "Get Directions";
+          btn.style = "padding: 10px; margin-top: 10px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer;";
+          btn.addEventListener("click", () => {
+            console.log("🧭 Directions button clicked");
+            getDirections(position.lat(), position.lng());
+          });
+
+          contentDiv.appendChild(name);
+          contentDiv.appendChild(rating);
+          contentDiv.appendChild(dist);
+          contentDiv.appendChild(addr);
+          contentDiv.appendChild(btn);
+
+          infowindowRef.current.setContent(contentDiv);
+          infowindowRef.current.setPosition(position);
+          infowindowRef.current.open(mapRefObject.current);
+        } else {
+          alert("Failed to fetch ETA for popup: " + status);
+        }
+      }
+    );
   };
 
   const getDirections = (destLat, destLng) => {
@@ -282,6 +328,7 @@ const MapComponent = () => {
   const clearMarkers = () => {
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
+    setVisiblePlaces([]);
     console.log("🧹 Cleared markers");
   };
 
@@ -297,43 +344,61 @@ const MapComponent = () => {
   };
 
   return (
-    <>
-      <div id="floating-panel" className="search-bar">
-        <input id="autocomplete-input" placeholder="Search for a place" style={{ padding: '8px', width: '200px' }} />
-
-        <button onClick={getLocation}>📍 Locate Me</button>
-
-        <select onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
-          {[1, 5, 10, 15, 20, 30, 50].map((km) => (
-            <option key={km} value={km}>{km} km</option>
+    <div style={{ display: 'flex', height: '100vh' }}>
+      <div style={{ width: '25%', overflowY: 'auto', background: '#f1f1f1', padding: '10px' }}>
+        <h4>Nearby Restaurants ({visiblePlaces.length})</h4>
+        <ul>
+          {visiblePlaces.map((place, i) => (
+            <li key={i} style={{ marginBottom: '10px', cursor: 'pointer' }} onClick={() => openInfoWindow(place.place, place.position)}>
+              <strong>{place.name}</strong><br />
+              {place.rating}⭐ — {place.distance} km
+            </li>
           ))}
-        </select>
-
-        <select onChange={(e) => setRouteType(e.target.value)} value={routeType}>
-          <option value="DRIVING">Driving</option>
-          <option value="WALKING">Walking</option>
-          <option value="BICYCLING">Bicycling</option>
-          <option value="TRANSIT">Transit</option>
-        </select>
-
-        <select onChange={(e) => setMinRating(Number(e.target.value))} value={minRating}>
-          {[0, 3, 4, 4.5].map(r => (
-            <option key={r} value={r}>Min Rating: {r}⭐</option>
-          ))}
-        </select>
-
-        <label>
-          <input type="checkbox" checked={openNow} onChange={() => setOpenNow(!openNow)} /> Open Now
-        </label>
-
-        <button onClick={clearMarkers}>🧹 Clear Markers</button>
-        <button onClick={clearRoute}>🗺️ Clear Route</button>
-
-        {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
+        </ul>
       </div>
 
-      <div id="map" ref={mapRef} style={{ height: "100vh", width: "100%" }}></div>
-    </>
+      <div style={{ flex: 1, position: 'relative' }}>
+        <div id="floating-panel" className="search-bar" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)' }}>
+          <input id="autocomplete-input" placeholder="Search for a place" style={{ padding: '8px', width: '200px' }} />
+
+          <button onClick={getLocation}>📍 Locate Me</button>
+
+          <select onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
+            {[1, 5, 10, 15, 20, 30, 50].map((km) => (
+              <option key={km} value={km}>{km} km</option>
+            ))}
+          </select>
+
+          <select onChange={(e) => setRouteType(e.target.value)} value={routeType}>
+            <option value="DRIVING">Driving</option>
+            <option value="WALKING">Walking</option>
+            <option value="BICYCLING">Bicycling</option>
+            <option value="TRANSIT">Transit</option>
+          </select>
+
+          <select onChange={(e) => setMinRating(Number(e.target.value))} value={minRating}>
+            {[0, 3, 4, 4.5].map(r => (
+              <option key={r} value={r}>Min Rating: {r}⭐</option>
+            ))}
+          </select>
+
+          <label>
+            <input type="checkbox" checked={openNow} onChange={() => setOpenNow(!openNow)} /> Open Now
+          </label>
+
+          <label>
+            <input type="checkbox" checked={showRadius} onChange={() => setShowRadius(!showRadius)} /> Show Radius
+          </label>
+
+          <button onClick={clearMarkers}>🧹 Clear Markers</button>
+          <button onClick={clearRoute}>🗺️ Clear Route</button>
+
+          {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
+        </div>
+
+        <div id="map" ref={mapRef} style={{ height: "100%", width: "100%" }}></div>
+      </div>
+    </div>
   );
 };
 
