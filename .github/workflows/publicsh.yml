@@ -33,7 +33,7 @@ jobs:
       - run: cd loc-app
       - run: cd loc-app
       - run: ls
-      # - run: npm ci       
+      - run: npm ci       
       - run: npm install
       - run: npm run build      
 

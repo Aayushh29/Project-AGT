@@ -1,6 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react';
 import './style.css';
 
+// ✅ Mock Menus for Restaurants
+const MOCK_MENUS = {
+  "Pizza Palace": [
+    { item: "Margherita Pizza", price: "$12.99" },
+    { item: "Pepperoni Pizza", price: "$14.49" },
+    { item: "Garlic Bread", price: "$5.99" }
+  ],
+  "Sushi World": [
+    { item: "Salmon Roll", price: "$9.99" },
+    { item: "Tuna Sashimi", price: "$12.50" },
+    { item: "Miso Soup", price: "$3.00" }
+  ],
+  "Burger Haven": [
+    { item: "Cheeseburger", price: "$8.99" },
+    { item: "Veggie Burger", price: "$7.49" },
+    { item: "Fries", price: "$2.99" }
+  ]
+};
+
 const MapComponent = () => {
   const mapRef = useRef(null);
   const mapRefObject = useRef(null);
@@ -183,7 +202,6 @@ const MapComponent = () => {
 
         const distanceKm = distanceMeters / 1000;
 
-        // 💥 STRONG FILTERING: check distance + circle bounds
         if (distanceKm > radius) return;
         if (circleRef.current && !circleRef.current.getBounds().contains(place.geometry.location)) return;
 
@@ -216,6 +234,21 @@ const MapComponent = () => {
       markersRef.current = newMarkers;
       setVisiblePlaces(visible);
     });
+  };
+
+  const showMenuPopup = (placeName) => {
+    const menu = MOCK_MENUS[placeName];
+    if (!menu) {
+      alert(`No menu available for ${placeName}`);
+      return;
+    }
+
+    let menuText = `🍽️ Menu for ${placeName}:\n\n`;
+    menu.forEach(item => {
+      menuText += `${item.item} - ${item.price}\n`;
+    });
+
+    alert(menuText);
   };
 
   const openInfoWindow = (place, position) => {
@@ -269,8 +302,15 @@ const MapComponent = () => {
           btn.innerText = "Get Directions";
           btn.style = "padding: 10px; margin-top: 10px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer;";
           btn.addEventListener("click", () => {
-            console.log("🧭 Directions button clicked");
             getDirections(position.lat(), position.lng());
+          });
+
+          // ✅ New: Show Menu button
+          const menuBtn = document.createElement("button");
+          menuBtn.innerText = "🍽️ Show Menu";
+          menuBtn.style = "padding: 10px; margin-top: 10px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;";
+          menuBtn.addEventListener("click", () => {
+            showMenuPopup(place.name);
           });
 
           contentDiv.appendChild(name);
@@ -278,6 +318,7 @@ const MapComponent = () => {
           contentDiv.appendChild(dist);
           contentDiv.appendChild(addr);
           contentDiv.appendChild(btn);
+          contentDiv.appendChild(menuBtn); // ⬅️ Add this to the popup
 
           infowindowRef.current.setContent(contentDiv);
           infowindowRef.current.setPosition(position);
@@ -330,7 +371,6 @@ const MapComponent = () => {
           infowindowRef.current?.close();
           const leg = result.routes[0].legs[0];
           setRouteSummary(`${leg.distance.text}, ${leg.duration.text}`);
-          console.log("✅ Route rendered");
         } else {
           alert("Could not get directions: " + status);
         }
@@ -342,7 +382,6 @@ const MapComponent = () => {
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
     setVisiblePlaces([]);
-    console.log("🧹 Cleared markers");
   };
 
   const clearRoute = () => {
@@ -352,7 +391,6 @@ const MapComponent = () => {
       directionsRendererRef.current = null;
       destinationRef.current = null;
       setRouteSummary(null);
-      console.log("🧼 Cleared route");
     }
   };
 
