@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Nearby Restaurants with Directions</title>
+    <style>
+      html, body, #map {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #floating-panel {
+        position: absolute;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 5;
+        background-color: white;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        width: 300px;
+        text-align: center;
+      }
+      .slider {
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="floating-panel">
+      <button onclick="getLocation()">Locate Me</button><br><br>
+      <input type="range" id="radiusSlider" min="1" max="50" value="10" class="slider">
+      <p>Radius: <span id="radiusValue">10</span> km</p>
+      <select id="routeType">
+        <option value="DRIVING">Driving</option>
+        <option value="WALKING">Walking</option>
+        <option value="BICYCLING">Bicycling</option>
+        <option value="TRANSIT">Transit</option>
+      </select>
+    </div>
+    <div id="map"></div>
+
+    <script>
+      let map, latLng, infowindow, directionsRenderer, directionsService, markers = [];
+
+      document.getElementById("radiusSlider").oninput = function() {
+        document.getElementById("radiusValue").textContent = this.value;
+      };
+
+      function getLocation() {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            latLng = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            initMap();
+          },
+          () => alert("Failed to get your location.")
+        );
+      }
+
+      function initMap() {
+        const gmaps = google.maps;
+        map = new gmaps.Map(document.getElementById("map"), {
+          center: latLng,
+          zoom: 14
+        });
+
+        new gmaps.Marker({ position: latLng, map, title: "You are here" });
+
+        infowindow = new gmaps.InfoWindow();
+        directionsRenderer = new gmaps.DirectionsRenderer({ map });
+        directionsService = new gmaps.DirectionsService();
+
+        searchNearby();
+      }
+
+      function searchNearby() {
+        const gmaps = google.maps;
+        const service = new gmaps.places.PlacesService(map);
+        const radius = parseInt(document.getElementById("radiusSlider").value, 10) * 1000;
+
+        clearMarkers();
+
+        service.nearbySearch({
+          location: latLng,
+          radius: radius,
+          type: "restaurant"
+        }, (results, status) => {
+          if (status === gmaps.places.PlacesServiceStatus.OK) {
+            const bounds = new gmaps.LatLngBounds();
+            results.forEach((place) => {
+              const marker = new gmaps.Marker({
+                map,
+                position: place.geometry.location,
+                title: place.name
+              });
+
+              marker.addListener("click", () => {
+                const distance = gmaps.geometry.spherical.computeDistanceBetween(
+                  new gmaps.LatLng(latLng.lat, latLng.lng),
+                  place.geometry.location
+                ) / 1000;
+
+                const content = `
+                  <div style="text-align: center;">
+                    <h3>${place.name}</h3>
+                    <p><strong>Rating:</strong> ${place.rating || 'N/A'}</p>
+                    <p><strong>Distance:</strong> ${distance.toFixed(2)} km</p>
+                    <button onclick="getDirections(${place.geometry.location.lat()}, ${place.geometry.location.lng()})" style="padding: 10px;">Get Directions</button>
+                  </div>
+                `;
+
+                infowindow.setContent(content);
+                infowindow.setPosition(place.geometry.location);
+                infowindow.open(map);
+              });
+
+              markers.push(marker);
+              bounds.extend(place.geometry.location);
+            });
+
+            map.fitBounds(bounds);
+          } else {
+            alert("No places found.");
+          }
+        });
+      }
+
+      function getDirections(destLat, destLng) {
+        const gmaps = google.maps;
+        const routeType = document.getElementById("routeType").value;
+
+        directionsRenderer.setMap(map);
+
+        directionsService.route({
+          origin: latLng,
+          destination: { lat: destLat, lng: destLng },
+          travelMode: gmaps.TravelMode[routeType]
+        }, (result, status) => {
+          if (status === "OK") {
+            directionsRenderer.setDirections(result);
+          } else {
+            alert("Could not get directions: " + status);
+          }
+        });
+      }
+
+      function clearMarkers() {
+        markers.forEach(marker => marker.setMap(null));
+        markers = [];
+      }
+    </script>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=ADD_YOUR_KEY&libraries=places,geometry"></script>
+  </body>
+</html>
