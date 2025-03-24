@@ -5,13 +5,13 @@ const MapComponent = () => {
   const mapRef = useRef(null);
   const mapRefObject = useRef(null);
   const [radius, setRadius] = useState(10);
-  const [latLng, setLatLng] = useState(null);
-  const [infowindow, setInfowindow] = useState(null);
   const [routeType, setRouteType] = useState("DRIVING");
   const [googleReady, setGoogleReady] = useState(false);
   const markersRef = useRef([]);
   const directionsRendererRef = useRef(null);
   const destinationRef = useRef(null);
+  const latLngRef = useRef(null); // Latest location
+  const infowindowRef = useRef(null); // ✅ Replacing useState
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -26,7 +26,7 @@ const MapComponent = () => {
   }, []);
 
   useEffect(() => {
-    if (destinationRef.current && latLng) {
+    if (destinationRef.current && latLngRef.current) {
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
     }
   }, [routeType]);
@@ -43,7 +43,7 @@ const MapComponent = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
-        setLatLng(userLatLng);
+        latLngRef.current = userLatLng;
         initMap(userLatLng);
       },
       () => alert("Geolocation failed.")
@@ -66,7 +66,7 @@ const MapComponent = () => {
 
     const iw = new gmaps.InfoWindow({ content: "You are here!" });
     iw.open(mapObj);
-    setInfowindow(iw);
+    infowindowRef.current = iw; // ✅ Store InfoWindow
     mapRefObject.current = mapObj;
 
     searchNearby(mapObj, coords);
@@ -103,14 +103,14 @@ const MapComponent = () => {
           });
 
           marker.addListener("click", () => {
-            if (!latLng) {
+            if (!latLngRef.current) {
               alert("Please click 'Locate Me' first.");
               return;
             }
 
             const imageUrl = place.photos?.[0]?.getUrl({ maxWidth: 300 }) || '';
             const distance = gmaps.geometry.spherical.computeDistanceBetween(
-              new gmaps.LatLng(latLng.lat, latLng.lng),
+              new gmaps.LatLng(latLngRef.current.lat, latLngRef.current.lng),
               position
             ) / 1000;
 
@@ -152,9 +152,9 @@ const MapComponent = () => {
             contentDiv.appendChild(dist);
             contentDiv.appendChild(btn);
 
-            infowindow.setContent(contentDiv);
-            infowindow.setPosition(position);
-            infowindow.open(mapObj);
+            infowindowRef.current.setContent(contentDiv); // ✅ Safe now
+            infowindowRef.current.setPosition(position);
+            infowindowRef.current.open(mapObj);
           });
 
           newMarkers.push(marker);
@@ -171,13 +171,13 @@ const MapComponent = () => {
 
   const getDirections = (destLat, destLng) => {
     const map = mapRefObject.current;
-    if (!latLng || !map) {
+    if (!latLngRef.current || !map) {
       alert("Please click 'Locate Me' first.");
       return;
     }
 
     const gmaps = window.google.maps;
-    const start = new gmaps.LatLng(latLng.lat, latLng.lng);
+    const start = new gmaps.LatLng(latLngRef.current.lat, latLngRef.current.lng);
     const end = new gmaps.LatLng(destLat, destLng);
 
     destinationRef.current = { lat: destLat, lng: destLng };
@@ -187,7 +187,7 @@ const MapComponent = () => {
     if (!directionsRendererRef.current) {
       directionsRendererRef.current = new gmaps.DirectionsRenderer({
         polylineOptions: {
-          strokeColor: "#0000FF",
+          strokeColor: "#003366",
           strokeOpacity: 0.9,
           strokeWeight: 6
         }
@@ -207,7 +207,7 @@ const MapComponent = () => {
         if (status === gmaps.DirectionsStatus.OK) {
           clearMarkers();
           directionsRendererRef.current.setDirections(result);
-          infowindow?.close();
+          infowindowRef.current?.close();
           console.log("✅ Route rendered");
         } else {
           alert("Could not get directions: " + status);
@@ -253,7 +253,6 @@ const MapComponent = () => {
         <button onClick={clearMarkers}>🧹 Clear Markers</button>
         <button onClick={clearRoute}>🗺️ Clear Route</button>
       </div>
-
 
       <div id="map" ref={mapRef} style={{ height: "100vh", width: "100%" }}></div>
     </>
