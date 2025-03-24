@@ -9,7 +9,7 @@ const MapComponent = () => {
   const [googleReady, setGoogleReady] = useState(false);
   const [minRating, setMinRating] = useState(0);
   const [openNow, setOpenNow] = useState(false);
-  const [showRadius, setShowRadius] = useState(true);
+  const [showRadius, setShowRadius] = useState(false);
   const [visiblePlaces, setVisiblePlaces] = useState([]);
   const markersRef = useRef([]);
   const directionsRendererRef = useRef(null);
@@ -163,56 +163,58 @@ const MapComponent = () => {
     drawCircle(mapObj, coords);
 
     service.nearbySearch(request, (results, status) => {
-      if (status === gmaps.places.PlacesServiceStatus.OK) {
-        const bounds = new gmaps.LatLngBounds();
-        const newMarkers = [];
-        const visible = [];
+      if (status !== gmaps.places.PlacesServiceStatus.OK || !results) {
+        alert("No nearby restaurants found.");
+        return;
+      }
 
-        results.forEach((place) => {
-          if (place.rating < minRating) return;
+      const newMarkers = [];
+      const visible = [];
 
-          const distance = gmaps.geometry.spherical.computeDistanceBetween(
-            new gmaps.LatLng(coords.lat, coords.lng),
-            place.geometry.location
-          ) / 1000;
+      const origin = new gmaps.LatLng(coords.lat, coords.lng);
 
-          if (distance > radius) return;
+      results.forEach((place) => {
+        if (!place.geometry?.location || place.rating < minRating) return;
 
-          const position = place.geometry.location;
+        const distanceMeters = gmaps.geometry.spherical.computeDistanceBetween(
+          origin,
+          place.geometry.location
+        );
 
-          const marker = new gmaps.Marker({
-            map: mapObj,
-            position,
-            title: place.name,
-            animation: gmaps.Animation.DROP,
-            icon: {
-              url: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png',
-              scaledSize: new gmaps.Size(32, 32)
-            }
-          });
+        const distanceKm = distanceMeters / 1000;
 
-          marker.addListener("click", () => openInfoWindow(place, position));
+        // 💥 STRONG FILTERING: check distance + circle bounds
+        if (distanceKm > radius) return;
+        if (circleRef.current && !circleRef.current.getBounds().contains(place.geometry.location)) return;
 
-          visible.push({
-            name: place.name,
-            address: place.vicinity,
-            rating: place.rating,
-            distance: distance.toFixed(2),
-            marker: marker,
-            place: place,
-            position: position
-          });
-
-          newMarkers.push(marker);
-          bounds.extend(position);
+        const marker = new gmaps.Marker({
+          map: mapObj,
+          position: place.geometry.location,
+          title: place.name,
+          animation: gmaps.Animation.DROP,
+          icon: {
+            url: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png',
+            scaledSize: new gmaps.Size(32, 32)
+          }
         });
 
-        markersRef.current = newMarkers;
-        setVisiblePlaces(visible);
-        mapObj.fitBounds(bounds);
-      } else {
-        alert("No nearby restaurants found.");
-      }
+        marker.addListener("click", () => openInfoWindow(place, place.geometry.location));
+
+        visible.push({
+          name: place.name,
+          address: place.vicinity,
+          rating: place.rating,
+          distance: distanceKm.toFixed(2),
+          marker,
+          place,
+          position: place.geometry.location
+        });
+
+        newMarkers.push(marker);
+      });
+
+      markersRef.current = newMarkers;
+      setVisiblePlaces(visible);
     });
   };
 
@@ -361,9 +363,9 @@ const MapComponent = () => {
         <ul>
           {visiblePlaces.map((place, i) => (
             <li key={i} style={{ marginBottom: '10px', cursor: 'pointer' }}
-                onMouseEnter={() => place.marker.setAnimation(window.google.maps.Animation.BOUNCE)}
-                onMouseLeave={() => place.marker.setAnimation(null)}
-                onClick={() => openInfoWindow(place.place, place.position)}>
+              onMouseEnter={() => place.marker.setAnimation(window.google.maps.Animation.BOUNCE)}
+              onMouseLeave={() => place.marker.setAnimation(null)}
+              onClick={() => openInfoWindow(place.place, place.position)}>
               <strong>{place.name}</strong><br />
               {place.rating}⭐ — {place.distance} km
             </li>
