@@ -31,8 +31,9 @@ jobs:
         with:
           node-version: 20
       - run: cd loc-app
+      - run: cd loc-app
       - run: ls
-      - run: npm ci
+      # - run: npm ci
       - run: npm build
 
   deploy:

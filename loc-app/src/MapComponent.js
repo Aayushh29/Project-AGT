@@ -111,7 +111,10 @@ const MapComponent = () => {
       position: coords,
       map: mapObj,
       title: "You are here",
-      draggable: true
+      icon: {
+        url: 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png',
+        scaledSize: new gmaps.Size(40, 40)
+      }
     });
 
     const iw = new gmaps.InfoWindow({ content: "You are here!" });
@@ -243,6 +246,14 @@ const MapComponent = () => {
           const name = document.createElement("h3");
           name.innerText = place.name;
 
+          if (place.photos && place.photos.length > 0) {
+            const img = document.createElement("img");
+            img.src = place.photos[0].getUrl({ maxWidth: 250 });
+            img.alt = place.name;
+            img.style = "width: 100%; border-radius: 8px; margin-bottom: 10px;";
+            contentDiv.appendChild(img);
+          }
+
           const rating = document.createElement("p");
           rating.innerHTML = `<strong>Rating:</strong> ${stars}`;
 
@@ -349,7 +360,10 @@ const MapComponent = () => {
         <h4>Nearby Restaurants ({visiblePlaces.length})</h4>
         <ul>
           {visiblePlaces.map((place, i) => (
-            <li key={i} style={{ marginBottom: '10px', cursor: 'pointer' }} onClick={() => openInfoWindow(place.place, place.position)}>
+            <li key={i} style={{ marginBottom: '10px', cursor: 'pointer' }}
+                onMouseEnter={() => place.marker.setAnimation(window.google.maps.Animation.BOUNCE)}
+                onMouseLeave={() => place.marker.setAnimation(null)}
+                onClick={() => openInfoWindow(place.place, place.position)}>
               <strong>{place.name}</strong><br />
               {place.rating}⭐ — {place.distance} km
             </li>
