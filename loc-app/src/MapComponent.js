@@ -7,11 +7,15 @@ const MapComponent = () => {
   const [radius, setRadius] = useState(10);
   const [routeType, setRouteType] = useState("DRIVING");
   const [googleReady, setGoogleReady] = useState(false);
+  const [minRating, setMinRating] = useState(0);
+  const [openNow, setOpenNow] = useState(false);
   const markersRef = useRef([]);
   const directionsRendererRef = useRef(null);
   const destinationRef = useRef(null);
-  const latLngRef = useRef(null); // Latest location
-  const infowindowRef = useRef(null); // ✅ Replacing useState
+  const latLngRef = useRef(null);
+  const infowindowRef = useRef(null);
+  const autocompleteRef = useRef(null);
+  const [routeSummary, setRouteSummary] = useState(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -30,6 +34,29 @@ const MapComponent = () => {
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
     }
   }, [routeType]);
+
+  useEffect(() => {
+    if (googleReady && window.google?.maps) {
+      const input = document.getElementById("autocomplete-input");
+      const autocomplete = new window.google.maps.places.Autocomplete(input);
+      autocomplete.setBounds(new window.google.maps.LatLngBounds(
+        { lat: latLngRef.current?.lat - 0.1, lng: latLngRef.current?.lng - 0.1 },
+        { lat: latLngRef.current?.lat + 0.1, lng: latLngRef.current?.lng + 0.1 }
+      ));
+      autocomplete.setOptions({ strictBounds: true });
+      autocomplete.addListener("place_changed", () => {
+        const place = autocomplete.getPlace();
+        if (!place.geometry || !place.geometry.location) return;
+        const coords = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        latLngRef.current = coords;
+        initMap(coords);
+      });
+      autocompleteRef.current = autocomplete;
+    }
+  }, [googleReady]);
 
   const getLocation = () => {
     if (!googleReady) {
@@ -66,7 +93,7 @@ const MapComponent = () => {
 
     const iw = new gmaps.InfoWindow({ content: "You are here!" });
     iw.open(mapObj);
-    infowindowRef.current = iw; // ✅ Store InfoWindow
+    infowindowRef.current = iw;
     mapRefObject.current = mapObj;
 
     searchNearby(mapObj, coords);
@@ -79,7 +106,8 @@ const MapComponent = () => {
     const request = {
       location: coords,
       radius: radius * 1000,
-      type: "restaurant"
+      type: "restaurant",
+      openNow: openNow
     };
 
     clearMarkers();
@@ -90,6 +118,8 @@ const MapComponent = () => {
         const newMarkers = [];
 
         results.forEach((place) => {
+          if (place.rating < minRating) return;
+
           const position = place.geometry.location;
 
           const marker = new gmaps.Marker({
@@ -152,7 +182,7 @@ const MapComponent = () => {
             contentDiv.appendChild(dist);
             contentDiv.appendChild(btn);
 
-            infowindowRef.current.setContent(contentDiv); // ✅ Safe now
+            infowindowRef.current.setContent(contentDiv);
             infowindowRef.current.setPosition(position);
             infowindowRef.current.open(mapObj);
           });
@@ -208,6 +238,8 @@ const MapComponent = () => {
           clearMarkers();
           directionsRendererRef.current.setDirections(result);
           infowindowRef.current?.close();
+          const leg = result.routes[0].legs[0];
+          setRouteSummary(`${leg.distance.text}, ${leg.duration.text}`);
           console.log("✅ Route rendered");
         } else {
           alert("Could not get directions: " + status);
@@ -228,6 +260,7 @@ const MapComponent = () => {
       directionsRendererRef.current.set('directions', null);
       directionsRendererRef.current = null;
       destinationRef.current = null;
+      setRouteSummary(null);
       console.log("🧼 Cleared route");
     }
   };
@@ -235,6 +268,8 @@ const MapComponent = () => {
   return (
     <>
       <div id="floating-panel" className="search-bar">
+        <input id="autocomplete-input" placeholder="Search for a place" style={{ padding: '8px', width: '200px' }} />
+
         <button onClick={getLocation}>📍 Locate Me</button>
 
         <select onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
@@ -250,8 +285,20 @@ const MapComponent = () => {
           <option value="TRANSIT">Transit</option>
         </select>
 
+        <select onChange={(e) => setMinRating(Number(e.target.value))} value={minRating}>
+          {[0, 3, 4, 4.5].map(r => (
+            <option key={r} value={r}>Min Rating: {r}⭐</option>
+          ))}
+        </select>
+
+        <label>
+          <input type="checkbox" checked={openNow} onChange={() => setOpenNow(!openNow)} /> Open Now
+        </label>
+
         <button onClick={clearMarkers}>🧹 Clear Markers</button>
         <button onClick={clearRoute}>🗺️ Clear Route</button>
+
+        {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
       </div>
 
       <div id="map" ref={mapRef} style={{ height: "100vh", width: "100%" }}></div>
