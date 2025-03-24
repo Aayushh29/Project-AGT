@@ -39,24 +39,44 @@ const MapComponent = () => {
     if (googleReady && window.google?.maps) {
       const input = document.getElementById("autocomplete-input");
       const autocomplete = new window.google.maps.places.Autocomplete(input);
-      autocomplete.setBounds(new window.google.maps.LatLngBounds(
-        { lat: latLngRef.current?.lat - 0.1, lng: latLngRef.current?.lng - 0.1 },
-        { lat: latLngRef.current?.lat + 0.1, lng: latLngRef.current?.lng + 0.1 }
-      ));
-      autocomplete.setOptions({ strictBounds: true });
+
+      if (latLngRef.current) {
+        const bounds = new window.google.maps.LatLngBounds(
+          {
+            lat: latLngRef.current.lat - 0.2,
+            lng: latLngRef.current.lng - 0.2
+          },
+          {
+            lat: latLngRef.current.lat + 0.2,
+            lng: latLngRef.current.lng + 0.2
+          }
+        );
+        autocomplete.setBounds(bounds);
+        autocomplete.setOptions({ strictBounds: true });
+      }
+
       autocomplete.addListener("place_changed", () => {
         const place = autocomplete.getPlace();
         if (!place.geometry || !place.geometry.location) return;
+
         const coords = {
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng()
         };
+
         latLngRef.current = coords;
         initMap(coords);
       });
+
       autocompleteRef.current = autocomplete;
     }
   }, [googleReady]);
+
+  useEffect(() => {
+    if (latLngRef.current && mapRefObject.current) {
+      searchNearby(mapRefObject.current, latLngRef.current);
+    }
+  }, [minRating, openNow]);
 
   const getLocation = () => {
     if (!googleReady) {
@@ -106,9 +126,12 @@ const MapComponent = () => {
     const request = {
       location: coords,
       radius: radius * 1000,
-      type: "restaurant",
-      openNow: openNow
+      type: "restaurant"
     };
+
+    if (openNow) {
+      request.openNow = true;
+    }
 
     clearMarkers();
 
@@ -126,6 +149,7 @@ const MapComponent = () => {
             map: mapObj,
             position,
             title: place.name,
+            animation: gmaps.Animation.DROP,
             icon: {
               url: 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png',
               scaledSize: new gmaps.Size(32, 32)
@@ -138,53 +162,60 @@ const MapComponent = () => {
               return;
             }
 
-            const imageUrl = place.photos?.[0]?.getUrl({ maxWidth: 300 }) || '';
-            const distance = gmaps.geometry.spherical.computeDistanceBetween(
-              new gmaps.LatLng(latLngRef.current.lat, latLngRef.current.lng),
-              position
-            ) / 1000;
+            const directionsService = new gmaps.DirectionsService();
 
-            const stars = place.rating
-              ? '⭐'.repeat(Math.floor(place.rating)) + ` (${place.rating.toFixed(1)})`
-              : 'No rating';
+            directionsService.route(
+              {
+                origin: new gmaps.LatLng(latLngRef.current.lat, latLngRef.current.lng),
+                destination: position,
+                travelMode: gmaps.TravelMode[routeType]
+              },
+              (result, status) => {
+                if (status === gmaps.DirectionsStatus.OK) {
+                  const leg = result.routes[0].legs[0];
 
-            const contentDiv = document.createElement("div");
-            contentDiv.style.width = "250px";
-            contentDiv.style.textAlign = "center";
+                  const stars = place.rating
+                    ? '⭐'.repeat(Math.floor(place.rating)) + ` (${place.rating.toFixed(1)})`
+                    : 'No rating';
 
-            const name = document.createElement("h3");
-            name.innerText = place.name;
+                  const contentDiv = document.createElement("div");
+                  contentDiv.style.width = "250px";
+                  contentDiv.style.textAlign = "center";
 
-            if (imageUrl) {
-              const img = document.createElement("img");
-              img.src = imageUrl;
-              img.alt = place.name;
-              img.style = "width: 100%; border-radius: 10px; margin-bottom: 10px;";
-              contentDiv.appendChild(img);
-            }
+                  const name = document.createElement("h3");
+                  name.innerText = place.name;
 
-            const rating = document.createElement("p");
-            rating.innerHTML = `<strong>Rating:</strong> ${stars}`;
+                  const rating = document.createElement("p");
+                  rating.innerHTML = `<strong>Rating:</strong> ${stars}`;
 
-            const dist = document.createElement("p");
-            dist.innerHTML = `<strong>Distance:</strong> ${distance.toFixed(2)} km`;
+                  const dist = document.createElement("p");
+                  dist.innerHTML = `<strong>ETA:</strong> ${leg.distance.text}, ${leg.duration.text}`;
 
-            const btn = document.createElement("button");
-            btn.innerText = "Get Directions";
-            btn.style = "padding: 10px; margin-top: 10px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer;";
-            btn.addEventListener("click", () => {
-              console.log("🧭 Directions button clicked");
-              getDirections(position.lat(), position.lng());
-            });
+                  const addr = document.createElement("p");
+                  addr.innerHTML = `<strong>Address:</strong> ${place.vicinity || 'N/A'}`;
 
-            contentDiv.appendChild(name);
-            contentDiv.appendChild(rating);
-            contentDiv.appendChild(dist);
-            contentDiv.appendChild(btn);
+                  const btn = document.createElement("button");
+                  btn.innerText = "Get Directions";
+                  btn.style = "padding: 10px; margin-top: 10px; background: blue; color: white; border: none; border-radius: 5px; cursor: pointer;";
+                  btn.addEventListener("click", () => {
+                    console.log("🧭 Directions button clicked");
+                    getDirections(position.lat(), position.lng());
+                  });
 
-            infowindowRef.current.setContent(contentDiv);
-            infowindowRef.current.setPosition(position);
-            infowindowRef.current.open(mapObj);
+                  contentDiv.appendChild(name);
+                  contentDiv.appendChild(rating);
+                  contentDiv.appendChild(dist);
+                  contentDiv.appendChild(addr);
+                  contentDiv.appendChild(btn);
+
+                  infowindowRef.current.setContent(contentDiv);
+                  infowindowRef.current.setPosition(position);
+                  infowindowRef.current.open(mapObj);
+                } else {
+                  alert("Failed to fetch ETA for popup: " + status);
+                }
+              }
+            );
           });
 
           newMarkers.push(marker);
