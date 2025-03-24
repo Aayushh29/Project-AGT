@@ -6,31 +6,6 @@ body {
   padding: 0;
 }
 
-#floating-panel {
-  position: absolute;
-  top: 10px;
-  left: 25%;
-  z-index: 5;
-  background-color: #fff;
-  padding: 5px;
-  border: 1px solid #999;
-  text-align: center;
-  font-family: "Roboto", "sans-serif";
-  line-height: 30px;
-  padding-left: 10px;
-}
-
-#floating-panel {
-  position: absolute;
-  top: 5px;
-  left: 50%;
-  margin-left: -180px;
-  width: 350px;
-  z-index: 5;
-  background-color: #fff;
-  padding: 5px;
-  border: 1px solid #999;
-}
 
 #latlng {
   width: 225px;
@@ -75,17 +50,43 @@ html, body, #map {
   margin: 0;
   padding: 0;
 }
-#floating-panel {
+#floating-panel.search-bar {
   position: absolute;
   top: 10px;
   left: 50%;
+  transform: translateX(-50%);
   z-index: 5;
   background: white;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
 }
+
+#floating-panel select,
+#floating-panel button {
+  padding: 8px 10px;
+  font-size: 14px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background: #f9f9f9;
+  cursor: pointer;
+}
+
+#floating-panel button:hover {
+  background: #e0e0e0;
+}
+
 
 .slidecontainer {
   margin: 10px 0;
+}
+
+#directions-panel {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
 }

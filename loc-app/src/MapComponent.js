@@ -3,14 +3,15 @@ import './style.css';
 
 const MapComponent = () => {
   const mapRef = useRef(null);
-  const mapRefObject = useRef(null); // ⬅️ Holds the actual map instance
+  const mapRefObject = useRef(null);
   const [radius, setRadius] = useState(10);
   const [latLng, setLatLng] = useState(null);
   const [infowindow, setInfowindow] = useState(null);
   const [routeType, setRouteType] = useState("DRIVING");
-  const [markers, setMarkers] = useState([]);
   const [googleReady, setGoogleReady] = useState(false);
+  const markersRef = useRef([]);
   const directionsRendererRef = useRef(null);
+  const destinationRef = useRef(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -23,6 +24,12 @@ const MapComponent = () => {
     };
     document.body.appendChild(script);
   }, []);
+
+  useEffect(() => {
+    if (destinationRef.current && latLng) {
+      getDirections(destinationRef.current.lat, destinationRef.current.lng);
+    }
+  }, [routeType]);
 
   const getLocation = () => {
     if (!googleReady) {
@@ -60,7 +67,7 @@ const MapComponent = () => {
     const iw = new gmaps.InfoWindow({ content: "You are here!" });
     iw.open(mapObj);
     setInfowindow(iw);
-    mapRefObject.current = mapObj; // ✅ Store live map reference
+    mapRefObject.current = mapObj;
 
     searchNearby(mapObj, coords);
   };
@@ -154,7 +161,7 @@ const MapComponent = () => {
           bounds.extend(position);
         });
 
-        setMarkers(newMarkers);
+        markersRef.current = newMarkers;
         mapObj.fitBounds(bounds);
       } else {
         alert("No nearby restaurants found.");
@@ -173,14 +180,22 @@ const MapComponent = () => {
     const start = new gmaps.LatLng(latLng.lat, latLng.lng);
     const end = new gmaps.LatLng(destLat, destLng);
 
+    destinationRef.current = { lat: destLat, lng: destLng };
+
     const directionsService = new gmaps.DirectionsService();
 
     if (!directionsRendererRef.current) {
-      directionsRendererRef.current = new gmaps.DirectionsRenderer();
+      directionsRendererRef.current = new gmaps.DirectionsRenderer({
+        polylineOptions: {
+          strokeColor: "#0000FF",
+          strokeOpacity: 0.9,
+          strokeWeight: 6
+        }
+      });
     }
 
-    directionsRendererRef.current.setMap(map); // ✅ Attach renderer to correct map
-    directionsRendererRef.current.set('directions', null); // Clear any previous route
+    directionsRendererRef.current.setMap(map);
+    directionsRendererRef.current.set('directions', null);
 
     directionsService.route(
       {
@@ -189,7 +204,6 @@ const MapComponent = () => {
         travelMode: gmaps.TravelMode[routeType]
       },
       (result, status) => {
-        console.log("🛣️ Route status:", status);
         if (status === gmaps.DirectionsStatus.OK) {
           clearMarkers();
           directionsRendererRef.current.setDirections(result);
@@ -203,33 +217,44 @@ const MapComponent = () => {
   };
 
   const clearMarkers = () => {
-    markers.forEach(marker => marker.setMap(null));
-    setMarkers([]);
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
+    console.log("🧹 Cleared markers");
+  };
+
+  const clearRoute = () => {
+    if (directionsRendererRef.current) {
+      directionsRendererRef.current.setMap(null);
+      directionsRendererRef.current.set('directions', null);
+      directionsRendererRef.current = null;
+      destinationRef.current = null;
+      console.log("🧼 Cleared route");
+    }
   };
 
   return (
     <>
-      <div id="floating-panel">
-        <input type="button" value="Locate Me" onClick={getLocation} />
-        <input type="button" value="Clear Markers" onClick={clearMarkers} />
-        <div className="slidecontainer">
-          <input
-            type="range"
-            min="1"
-            max="50"
-            value={radius}
-            className="slider"
-            onChange={(e) => setRadius(e.target.value)}
-          />
-          <p>Radius: {radius} km</p>
-        </div>
+      <div id="floating-panel" className="search-bar">
+        <button onClick={getLocation}>📍 Locate Me</button>
+
+        <select onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
+          {[1, 5, 10, 15, 20, 30, 50].map((km) => (
+            <option key={km} value={km}>{km} km</option>
+          ))}
+        </select>
+
         <select onChange={(e) => setRouteType(e.target.value)} value={routeType}>
           <option value="DRIVING">Driving</option>
           <option value="WALKING">Walking</option>
           <option value="BICYCLING">Bicycling</option>
           <option value="TRANSIT">Transit</option>
         </select>
+
+        <button onClick={clearMarkers}>🧹 Clear Markers</button>
+        <button onClick={clearRoute}>🗺️ Clear Route</button>
       </div>
+
+
       <div id="map" ref={mapRef} style={{ height: "100vh", width: "100%" }}></div>
     </>
   );
