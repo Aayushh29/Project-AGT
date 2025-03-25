@@ -131,7 +131,7 @@ const NearByRestaurantsList = () => {
         <div className="row g-3">
           <div className="col-md-6 text-start">
             <label className="form-label fw-bold">Filter by Radius (km)</label>
-            <select className="form-select" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+            <select className="form-select" style={{backgroundColor:"black", color:'white'}}  value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
               {[1, 3, 5, 10, 15, 20, 30, 50].map(r => (
                 <option key={r} value={r}>{r} km</option>
               ))}
@@ -139,7 +139,7 @@ const NearByRestaurantsList = () => {
           </div>
           <div className="col-md-6 text-start">
             <label className="form-label fw-bold">Minimum Rating</label>
-            <select className="form-select" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
+            <select className="form-select" style={{backgroundColor:"black", color:'white'}} value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
               {[0, 3, 4, 4.5].map(r => (
                 <option key={r} value={r}>{r} ⭐</option>
               ))}
