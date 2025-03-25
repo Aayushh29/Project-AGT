@@ -8,12 +8,13 @@ import {
   getDocs,
   addDoc
 } from 'firebase/firestore';
-
 import {
   onAuthStateChanged,
   updateProfile,
-  updatePassword
+  updatePassword,
+  signOut
 } from 'firebase/auth';
+
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import logoutImg from '../assets/logout.png';
@@ -116,6 +117,15 @@ function Profile() {
       alert("Update failed: " + error.message);
     }
   };
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error.message);
+      alert('Logout failed. Try again.');
+    }
+  };
 
   if (!authChecked) return <div className="text-center mt-5">Checking authentication...</div>;
   if (!userDetails) return <div className="text-center mt-5">Loading profile info...</div>;
@@ -134,7 +144,13 @@ function Profile() {
         </div>
 
         <div className="col-auto">
-          <img src={logoutImg} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Profile" />
+          <img
+            src={logoutImg}
+            onClick={handleLogout}
+            style={{ width: '2rem', height: '2rem', margin: '10px', cursor: 'pointer' }}
+            alt="Logout"
+          />
+
         </div>
       </div>
       <hr />

@@ -42,7 +42,7 @@ function App() {
             <h2 className="m-0">App Name</h2>
           </div>
 
-          <div className="col-auto">
+          <div className="col-auto" style={{cursor:'pointer'}}>
             <img src={profileImg} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Profile" onClick={goToProfile} />
           </div>
         </div>
