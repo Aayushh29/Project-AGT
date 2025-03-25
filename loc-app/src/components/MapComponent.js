@@ -1,24 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './style.css';
-
-// ✅ Mock Menus for Restaurants
-const MOCK_MENUS = {
-  "Pizza Palace": [
-    { item: "Margherita Pizza", price: "$12.99" },
-    { item: "Pepperoni Pizza", price: "$14.49" },
-    { item: "Garlic Bread", price: "$5.99" }
-  ],
-  "Sushi World": [
-    { item: "Salmon Roll", price: "$9.99" },
-    { item: "Tuna Sashimi", price: "$12.50" },
-    { item: "Miso Soup", price: "$3.00" }
-  ],
-  "Burger Haven": [
-    { item: "Cheeseburger", price: "$8.99" },
-    { item: "Veggie Burger", price: "$7.49" },
-    { item: "Fries", price: "$2.99" }
-  ]
-};
+import './stylesheets/style.css';
+import { useNavigate } from 'react-router-dom';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import back from '../assets/back.png';
+import profileImg from '../assets/profile.png';
 
 const MapComponent = () => {
   const mapRef = useRef(null);
@@ -38,6 +23,12 @@ const MapComponent = () => {
   const autocompleteRef = useRef(null);
   const [routeSummary, setRouteSummary] = useState(null);
   const circleRef = useRef(null);
+
+  const navigate = useNavigate();
+
+  const goToMap = () => {
+    navigate('/map');
+  };
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -236,20 +227,6 @@ const MapComponent = () => {
     });
   };
 
-  const showMenuPopup = (placeName) => {
-    const menu = MOCK_MENUS[placeName];
-    if (!menu) {
-      alert(`No menu available for ${placeName}`);
-      return;
-    }
-
-    let menuText = `🍽️ Menu for ${placeName}:\n\n`;
-    menu.forEach(item => {
-      menuText += `${item.item} - ${item.price}\n`;
-    });
-
-    alert(menuText);
-  };
 
   const openInfoWindow = (place, position) => {
     const gmaps = window.google.maps;
@@ -304,21 +281,11 @@ const MapComponent = () => {
           btn.addEventListener("click", () => {
             getDirections(position.lat(), position.lng());
           });
-
-          // ✅ New: Show Menu button
-          const menuBtn = document.createElement("button");
-          menuBtn.innerText = "🍽️ Show Menu";
-          menuBtn.style = "padding: 10px; margin-top: 10px; background: green; color: white; border: none; border-radius: 5px; cursor: pointer;";
-          menuBtn.addEventListener("click", () => {
-            showMenuPopup(place.name);
-          });
-
           contentDiv.appendChild(name);
           contentDiv.appendChild(rating);
           contentDiv.appendChild(dist);
           contentDiv.appendChild(addr);
           contentDiv.appendChild(btn);
-          contentDiv.appendChild(menuBtn); // ⬅️ Add this to the popup
 
           infowindowRef.current.setContent(contentDiv);
           infowindowRef.current.setPosition(position);
@@ -395,64 +362,103 @@ const MapComponent = () => {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
-      <div style={{ width: '25%', overflowY: 'auto', background: '#f1f1f1', padding: '10px' }}>
-        <h4>Nearby Restaurants ({visiblePlaces.length})</h4>
-        <ul>
-          {visiblePlaces.map((place, i) => (
-            <li key={i} style={{ marginBottom: '10px', cursor: 'pointer' }}
-              onMouseEnter={() => place.marker.setAnimation(window.google.maps.Animation.BOUNCE)}
-              onMouseLeave={() => place.marker.setAnimation(null)}
-              onClick={() => openInfoWindow(place.place, place.position)}>
-              <strong>{place.name}</strong><br />
-              {place.rating}⭐ — {place.distance} km
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div style={{ flex: 1, position: 'relative' }}>
-        <div id="floating-panel" className="search-bar" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, background: '#fff', padding: '10px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)' }}>
-          <input id="autocomplete-input" placeholder="Search for a place" style={{ padding: '8px', width: '200px' }} />
-
-          <button onClick={getLocation}>📍 Locate Me</button>
-
-          <select onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
-            {[1, 5, 10, 15, 20, 30, 50].map((km) => (
-              <option key={km} value={km}>{km} km</option>
-            ))}
-          </select>
-
-          <select onChange={(e) => setRouteType(e.target.value)} value={routeType}>
-            <option value="DRIVING">Driving</option>
-            <option value="WALKING">Walking</option>
-            <option value="BICYCLING">Bicycling</option>
-            <option value="TRANSIT">Transit</option>
-          </select>
-
-          <select onChange={(e) => setMinRating(Number(e.target.value))} value={minRating}>
-            {[0, 3, 4, 4.5].map(r => (
-              <option key={r} value={r}>Min Rating: {r}⭐</option>
-            ))}
-          </select>
-
-          <label>
-            <input type="checkbox" checked={openNow} onChange={() => setOpenNow(!openNow)} /> Open Now
-          </label>
-
-          <label>
-            <input type="checkbox" checked={showRadius} onChange={() => setShowRadius(!showRadius)} /> Show Radius
-          </label>
-
-          <button onClick={clearMarkers}>🧹 Clear Markers</button>
-          <button onClick={clearRoute}>🗺️ Clear Route</button>
-
-          {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
+    <div className="container text-center">
+      <div className="row align-items-center position-relative">
+        {/* Image at top-left */}
+        <div className="col-auto">
+          <img src={back} style={{ width: '2rem', height: '2rem' }} alt="Back" />
         </div>
 
-        <div id="map" ref={mapRef} style={{ height: "100%", width: "100%" }}></div>
+        {/* Centered "Map" text */}
+        <div className="col text-center">
+          <h4 className="m-0">Map</h4>
+        </div>
+      </div>
+      <hr />
+
+      <div style={{ display: 'flex', height: '100vh' }}>
+        <div style={{ width: '25%', overflowY: 'auto' }}>
+          <h4>Nearby Restaurants ({visiblePlaces.length})</h4>
+          <ul>
+            {visiblePlaces.map((place, i) => (
+              <li key={i} style={{ marginBottom: '10px', cursor: 'pointer' }}
+                onMouseEnter={() => place.marker.setAnimation(window.google.maps.Animation.BOUNCE)}
+                onMouseLeave={() => place.marker.setAnimation(null)}
+                onClick={() => openInfoWindow(place.place, place.position)}>
+                <strong>{place.name}</strong><br />
+                {place.rating}⭐ — {place.distance} km
+                <hr />
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div style={{ flex: 1, position: 'relative' }}>
+          <div id="" className="btn btn-dark" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, padding: '10px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)' }}>
+            <button className='btn btn-light' onClick={getLocation}>📍 Locate Me</button>
+
+            <div className="container mt-4">
+              <div className="row g-3">
+                {/* Radius Dropdown */}
+                <div className="col-md-4">
+                  <label htmlFor="radiusSelect" className="form-label fw-bold">Search Radius</label>
+                  <select
+                    id="radiusSelect"
+                    className="form-select"
+                    onChange={(e) => setRadius(Number(e.target.value))}
+                    value={radius}
+                  >
+                    {[1, 5, 10, 15, 20, 30, 50].map((km) => (
+                      <option key={km} value={km}>{km} km</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Route Type Dropdown */}
+                <div className="col-md-4">
+                  <label htmlFor="routeTypeSelect" className="form-label fw-bold">Route Type</label>
+                  <select
+                    id="routeTypeSelect"
+                    className="form-select"
+                    onChange={(e) => setRouteType(e.target.value)}
+                    value={routeType}
+                  >
+                    <option value="DRIVING">Driving</option>
+                    <option value="WALKING">Walking</option>
+                    <option value="BICYCLING">Bicycling</option>
+                    <option value="TRANSIT">Transit</option>
+                  </select>
+                </div>
+
+                {/* Rating Dropdown */}
+                <div className="col-md-4">
+                  <label htmlFor="ratingSelect" className="form-label fw-bold">Minimum Rating</label>
+                  <select
+                    id="ratingSelect"
+                    className="form-select"
+                    onChange={(e) => setMinRating(Number(e.target.value))}
+                    value={minRating}
+                  >
+                    {[0, 3, 4, 4.5].map((r) => (
+                      <option key={r} value={r}>Min Rating: {r} ⭐</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+
+            <button className='btn btn-light' onClick={clearMarkers}>🧹 Clear Markers</button>
+            <button className='btn btn-light' onClick={clearRoute}>🗺️ Clear Route</button>
+
+            {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
+          </div>
+
+          <div id="map" ref={mapRef} style={{ height: "100%", width: "100%" }}></div>
+        </div>
       </div>
     </div>
+
   );
 };
 
