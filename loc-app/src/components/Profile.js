@@ -20,8 +20,13 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import logoutImg from '../assets/logout.png';
 import back from '../assets/back.png';
 import bcrypt from 'bcryptjs'; // At the top
+import cuisinesData from './cuisines.json';
+
 
 function Profile() {
+  const cuisineOptions = [...new Set(cuisinesData.restaurants.flat())].sort();
+  const [selectedCuisines, setSelectedCuisines] = useState([]);
+
   const [userDetails, setUserDetails] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [newPassword, setNewPassword] = useState('');
@@ -37,11 +42,15 @@ function Profile() {
       }
 
       try {
+
         const docRef = doc(db, "userDetails", currentUser.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setUserDetails(docSnap.data());
-        } else {
+          const data = docSnap.data();
+          setUserDetails(data);
+          setSelectedCuisines(data.cuisines || []);
+        }
+        else {
           console.warn("User profile document missing");
         }
       } catch (error) {
@@ -59,6 +68,14 @@ function Profile() {
     setUserDetails({ ...userDetails, [e.target.name]: e.target.value });
   };
 
+  const handleCuisineSelect = (e) => {
+    const selected = Array.from(e.target.selectedOptions, option => option.value);
+    if (selected.length > 5) {
+      alert("You can only select exactly 5 cuisines.");
+      return;
+    }
+    setSelectedCuisines(selected);
+  };
 
   const handleSave = async () => {
     const user = auth.currentUser;
@@ -69,14 +86,22 @@ function Profile() {
       const userRef = doc(db, "userDetails", user.uid);
       const passwordHistoryCollection = collection(db, "oldPasswords", user.uid, "history");
 
+      // 1. Update Firestore profile      
+      if (selectedCuisines.length !== 5) {
+        alert("Please select exactly 5 favorite cuisines.");
+        return;
+      }
+
       // 1. Update Firestore profile
       await updateDoc(userRef, {
         name: userDetails.name,
         dob: userDetails.dob,
         gender: userDetails.gender,
         city: userDetails.city,
-        contact: userDetails.contact
+        contact: userDetails.contact,
+        cuisines: selectedCuisines
       });
+
 
       // 2. Update display name
       await updateProfile(user, {
@@ -192,6 +217,23 @@ function Profile() {
           <div className="mb-3 text-start">
             <label className="form-label text-dark">Contact</label>
             <input name="contact" value={userDetails.contact} onChange={handleChange} className="form-control border-dark text-dark bg-light" />
+          </div>
+          <div className="mb-3 text-start">
+            <label className="form-label text-dark">Favorite Cuisines (Select 5)</label>
+            <select
+              multiple
+              className="form-select border-dark text-dark bg-light"
+              value={selectedCuisines}
+              onChange={handleCuisineSelect}
+              style={{ height: '150px' }}
+            >
+              {cuisineOptions.map((cuisine, idx) => (
+                <option key={idx} value={cuisine}>
+                  {cuisine.replaceAll('_', ' ')}
+                </option>
+              ))}
+            </select>
+            <small className="text-muted">Selected {selectedCuisines.length} of 5 cuisines</small>
           </div>
 
           <div className="mb-3 text-start">

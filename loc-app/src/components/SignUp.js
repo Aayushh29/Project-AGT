@@ -9,6 +9,7 @@ import {
 import { auth, db } from '../firebaseconfig';
 import { doc, setDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import cuisinesData from './cuisines.json';
 
 function Signup() {
   const [signupData, setSignupData] = useState({
@@ -36,16 +37,31 @@ function Signup() {
     e.preventDefault();
     const { name, email, password, confirmPassword, dob, gender, city, contact } = signupData;
 
+    // Check for empty fields
+    if (!name || !email || !password || !confirmPassword || !dob || !gender || !city || !contact) {
+      alert("Please fill in all fields.");
+      return;
+    }
+    
+    // Password match check
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
       return;
     }
 
+    // Cuisine selection check
+    if (selectedCuisines.length !== 5) {
+      alert("Please select exactly 5 favorite cuisines.");
+      return;
+    }
+    if(contact.length != 10){
+      alert("Please enter a valid contact number");
+      return;
+    }
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       await updateProfile(userCredential.user, { displayName: name });
 
-      // Save extra info to Firestore
       const userDocRef = doc(db, "userDetails", userCredential.user.uid);
       await setDoc(userDocRef, {
         name,
@@ -54,6 +70,7 @@ function Signup() {
         gender,
         city,
         contact,
+        cuisines: selectedCuisines,
         createdAt: new Date()
       });
 
@@ -84,6 +101,22 @@ function Signup() {
       alert("Google signup failed: " + error.message);
     }
   };
+  const cuisineOptions = [...new Set(cuisinesData.restaurants.flat())].sort();
+
+  const [selectedCuisines, setSelectedCuisines] = useState([]);
+
+  const handleCuisineSelect = (e) => {
+    const selected = Array.from(e.target.selectedOptions, option => option.value);
+
+    if (selected.length > 5) {
+      alert("You can only select up to 5 cuisines.");
+      return;
+    }
+
+    setSelectedCuisines(selected);
+  };
+
+
   return (
     <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
       <div className="card shadow-lg p-4" style={{ maxWidth: '500px', width: '100%', backgroundColor: '#fff', border: '1px solid #000' }}>
@@ -130,10 +163,28 @@ function Signup() {
             <label className="form-label text-dark">Contact Number</label>
             <input type="tel" name="contact" value={signupData.contact} onChange={handleChange} className="form-control border-dark text-dark bg-light" />
           </div>
+          <div className="mb-3 text-start">
+            <label className="form-label text-dark">Favorite Cuisines (Select 5)</label>
+            <select
+              multiple
+              className="form-select border-dark text-dark bg-light"
+              value={selectedCuisines}
+              onChange={handleCuisineSelect}
+              style={{ height: '150px' }}
+            >
+              {cuisineOptions.map((cuisine, idx) => (
+                <option key={idx} value={cuisine}>{cuisine.replaceAll('_', ' ')}</option>
+              ))}
+            </select>
+          </div>
 
           <div className="d-grid mt-3">
             <button type="submit" className="btn btn-dark">Sign Up</button>
           </div>
+          <small className="text-muted">
+            Selected {selectedCuisines.length} of 5 cuisines
+          </small>
+
         </form>
 
         <div className="d-grid mt-3">
