@@ -77,7 +77,7 @@ function App() {
             <div className='col-md-4 d-flex justify-content-center mb-4'>
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
-                  <h4 className='text-center mb-4'>Map</h4>
+                  <h4 className='text-center mb-4'>History</h4>
                   <img src={locHistImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
                 </div>
               </div>

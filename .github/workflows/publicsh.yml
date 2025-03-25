@@ -27,12 +27,6 @@ jobs:
 
       - name: 🏗️ Build the app
         run: CI='' npm run build
-      
-      - name: 🏗️ Build the app
-        run: CI='' npm install -g serve
-
-      - name: 🏗️ Build the app
-        run: CI='' serve -s build
 
       - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3

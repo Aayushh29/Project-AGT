@@ -6,6 +6,8 @@ import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';
 import locpin from '../assets/location-pin.png';
 import destpin from '../assets/destination-pin.png';
+import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 const MapComponent = () => {
   const mapRef = useRef(null);
@@ -20,9 +22,12 @@ const MapComponent = () => {
   const [restaurantDetails, setRestaurantDetails] = useState(null);
   const userMarkerRef = useRef(null);
   const destinationMarkerRef = useRef(null);
+  const hasPrompted = useRef(false);
 
   const navigate = useNavigate();
   const location = useLocation();
+  const db = getFirestore();
+  const auth = getAuth();
 
   const goToHome = () => navigate('/');
   const goToProfile = () => navigate('/profile');
@@ -44,7 +49,7 @@ const MapComponent = () => {
       setRestaurantDetails(location.state.meta || null);
       getLocation();
     } else {
-      getLocation(true); // trigger nearest search if direct access
+      getLocation(true);
     }
   }, [googleReady]);
 
@@ -56,6 +61,7 @@ const MapComponent = () => {
       destinationRef.current
     ) {
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
+      startProximityWatcher();
     }
   }, [routeType]);
 
@@ -74,6 +80,7 @@ const MapComponent = () => {
   };
 
   const initMap = (coords, searchNearest = false) => {
+    
     const gmaps = window.google.maps;
     const mapObj = new gmaps.Map(mapRef.current, {
       center: coords,
@@ -190,6 +197,61 @@ const MapComponent = () => {
     });
   };
 
+  const startProximityWatcher = () => {
+    const watchId = navigator.geolocation.watchPosition((pos) => {
+      const userPos = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      const destPos = new window.google.maps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
+      const distance = window.google.maps.geometry.spherical.computeDistanceBetween(userPos, destPos);
+
+      if (distance < 100 && !hasPrompted.current) {
+        hasPrompted.current = true;
+        showRatingPrompt();
+        navigator.geolocation.clearWatch(watchId);
+      }
+    });
+  };
+
+  const showRatingPrompt = () => {
+    const rating = prompt("You've arrived! How would you rate this place? (1–5)");
+    const parsed = parseInt(rating);
+    if (parsed >= 1 && parsed <= 5) {
+      submitRating(parsed);
+    }
+  };
+
+  const submitRating = async (rating) => {
+    const user = auth.currentUser;
+  
+    if (!user) {
+      console.error("🚫 User not authenticated");
+      return;
+    }
+  
+    const now = new Date();
+    const visitId = `${Date.now()}`;
+    const visitPath = `visitHistory/${user.uid}/visits/${visitId}`;
+    const visitRef = doc(db, visitPath);
+  
+    console.log("📝 Writing to Firestore:", {
+      uid: user.uid,
+      path: visitPath
+    });
+  
+    try {
+      await setDoc(visitRef, {
+        userId: user.uid,
+        placeName: restaurantDetails.name,
+        address: restaurantDetails.address,
+        cuisine: restaurantDetails.cuisine,
+        rating,
+        timestamp: now
+      });
+      alert('✅ Thanks for rating!');
+    } catch (err) {
+      console.error("🔥 Firestore write failed:", err.message);
+    }
+  };
+  
   const clearRoute = () => {
     if (directionsRendererRef.current) {
       directionsRendererRef.current.setMap(null);
