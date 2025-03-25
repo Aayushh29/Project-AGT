@@ -43,6 +43,17 @@ const MapComponent = () => {
     getLocation();
   }, [googleReady]);
 
+  useEffect(() => {
+    if (
+      googleReady &&
+      latLngRef.current &&
+      mapRefObject.current &&
+      destinationRef.current
+    ) {
+      getDirections(destinationRef.current.lat, destinationRef.current.lng);
+    }
+  }, [routeType]);
+
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -130,6 +141,11 @@ const MapComponent = () => {
         infowindowRef.current?.close();
         const leg = result.routes[0].legs[0];
         setRouteSummary(`${leg.distance.text}, ${leg.duration.text}`);
+
+        // Auto-fit the route bounds on map
+        const bounds = new gmaps.LatLngBounds();
+        result.routes[0].overview_path.forEach(p => bounds.extend(p));
+        map.fitBounds(bounds);
       } else {
         alert("Could not get directions: " + status);
       }
