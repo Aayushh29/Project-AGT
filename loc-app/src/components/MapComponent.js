@@ -30,6 +30,10 @@ const MapComponent = () => {
     navigate('/');
   };
 
+  const goToProfile = () =>{
+    navigate('/');
+  };
+
   useEffect(() => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places,geometry`;
@@ -38,6 +42,7 @@ const MapComponent = () => {
     script.onload = () => {
       console.log("✅ Google Maps loaded");
       setGoogleReady(true);
+
     };
     document.body.appendChild(script);
   }, []);
@@ -90,6 +95,12 @@ const MapComponent = () => {
       searchNearby(mapRefObject.current, latLngRef.current);
     }
   }, [minRating, openNow, radius, showRadius]);
+
+  useEffect(() => {
+    if (googleReady) {
+      getLocation(); // Automatically locate and load the map
+    }
+  }, [googleReady]);
 
   const getLocation = () => {
     if (!googleReady) {
@@ -360,24 +371,27 @@ const MapComponent = () => {
       setRouteSummary(null);
     }
   };
-
+  // getLocation();
   return (
     <div className="container text-center">
       <div className="row align-items-center position-relative">
         {/* Image at top-left */}
-        <div className="col-auto" style={{cursor:'pointer'}} onClick={goToHome}>
-          <img src={back} style={{ width: '2rem', height: '2rem' }} alt="Back" />
+        <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToHome}>
+          <img src={back} style={{ width: '2rem', height: '2rem' , margin:'10px'}} alt="Back" />
         </div>
 
         {/* Centered "Map" text */}
         <div className="col text-center">
-          <h4 className="m-0">Map</h4>
+          <h2 className="m-0">Map</h2>
+        </div>
+        <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToProfile}>
+          <img src={profileImg} style={{ width: '2rem', height: '2rem', margin:'10px' }} alt="Profile" />
         </div>
       </div>
       <hr />
 
       <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ width: '25%', overflowY: 'auto', background: ''}}>
+        <div style={{ width: '25%', overflowY: 'auto', background: '' }}>
           <h4>Nearby Restaurants ({visiblePlaces.length})</h4>
           <ul>
             {visiblePlaces.map((place, i) => (
@@ -393,8 +407,8 @@ const MapComponent = () => {
           </ul>
         </div>
 
-        <div style={{ flex: 1, position: 'relative'}}>
-          <div id="" className="btn btn-dark" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, padding: '0px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)' , marginLeft:'180px'}}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <div id="" className="btn btn-dark" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, padding: '0px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)', marginLeft: '180px' }}>
             <button className='btn btn-dark' onClick={getLocation}>📍 Locate Me</button>
 
             <select className='btn btn-dark' onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
@@ -422,7 +436,7 @@ const MapComponent = () => {
             {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
           </div>
 
-          <div id="map" ref={mapRef} className='rounded' style={{ height: "90%", width: "100%", border:'2px solid black', }}></div>
+          <div id="map" ref={mapRef} className='rounded' style={{ height: "90%", width: "100%", border: '2px solid black', }}></div>
         </div>
       </div>
     </div>
