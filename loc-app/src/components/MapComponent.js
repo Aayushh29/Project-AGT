@@ -26,8 +26,8 @@ const MapComponent = () => {
 
   const navigate = useNavigate();
 
-  const goToMap = () => {
-    navigate('/map');
+  const goToHome = () => {
+    navigate('/');
   };
 
   useEffect(() => {
@@ -365,7 +365,7 @@ const MapComponent = () => {
     <div className="container text-center">
       <div className="row align-items-center position-relative">
         {/* Image at top-left */}
-        <div className="col-auto">
+        <div className="col-auto" style={{cursor:'pointer'}} onClick={goToHome}>
           <img src={back} style={{ width: '2rem', height: '2rem' }} alt="Back" />
         </div>
 
@@ -377,7 +377,7 @@ const MapComponent = () => {
       <hr />
 
       <div style={{ display: 'flex', height: '100vh' }}>
-        <div style={{ width: '25%', overflowY: 'auto' }}>
+        <div style={{ width: '25%', overflowY: 'auto', background: ''}}>
           <h4>Nearby Restaurants ({visiblePlaces.length})</h4>
           <ul>
             {visiblePlaces.map((place, i) => (
@@ -393,68 +393,36 @@ const MapComponent = () => {
           </ul>
         </div>
 
-        <div style={{ flex: 1, position: 'relative' }}>
-          <div id="" className="btn btn-dark" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, padding: '10px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)' }}>
-            <button className='btn btn-light' onClick={getLocation}>📍 Locate Me</button>
+        <div style={{ flex: 1, position: 'relative'}}>
+          <div id="" className="btn btn-dark" style={{ position: 'absolute', top: 10, left: 10, zIndex: 2, padding: '0px', borderRadius: '8px', boxShadow: '0px 2px 6px rgba(0,0,0,0.2)' , marginLeft:'180px'}}>
+            <button className='btn btn-dark' onClick={getLocation}>📍 Locate Me</button>
 
-            <div className="container mt-4">
-              <div className="row g-3">
-                {/* Radius Dropdown */}
-                <div className="col-md-4">
-                  <label htmlFor="radiusSelect" className="form-label fw-bold">Search Radius</label>
-                  <select
-                    id="radiusSelect"
-                    className="form-select"
-                    onChange={(e) => setRadius(Number(e.target.value))}
-                    value={radius}
-                  >
-                    {[1, 5, 10, 15, 20, 30, 50].map((km) => (
-                      <option key={km} value={km}>{km} km</option>
-                    ))}
-                  </select>
-                </div>
+            <select className='btn btn-dark' onChange={(e) => setRadius(Number(e.target.value))} value={radius}>
+              {[1, 5, 10, 15, 20, 30, 50].map((km) => (
+                <option key={km} value={km}>{km} km</option>
+              ))}
+            </select>
 
-                {/* Route Type Dropdown */}
-                <div className="col-md-4">
-                  <label htmlFor="routeTypeSelect" className="form-label fw-bold">Route Type</label>
-                  <select
-                    id="routeTypeSelect"
-                    className="form-select"
-                    onChange={(e) => setRouteType(e.target.value)}
-                    value={routeType}
-                  >
-                    <option value="DRIVING">Driving</option>
-                    <option value="WALKING">Walking</option>
-                    <option value="BICYCLING">Bicycling</option>
-                    <option value="TRANSIT">Transit</option>
-                  </select>
-                </div>
+            <select className='btn btn-dark' onChange={(e) => setRouteType(e.target.value)} value={routeType}>
+              <option value="DRIVING">Driving</option>
+              <option value="WALKING">Walking</option>
+              <option value="BICYCLING">Bicycling</option>
+              <option value="TRANSIT">Transit</option>
+            </select>
 
-                {/* Rating Dropdown */}
-                <div className="col-md-4">
-                  <label htmlFor="ratingSelect" className="form-label fw-bold">Minimum Rating</label>
-                  <select
-                    id="ratingSelect"
-                    className="form-select"
-                    onChange={(e) => setMinRating(Number(e.target.value))}
-                    value={minRating}
-                  >
-                    {[0, 3, 4, 4.5].map((r) => (
-                      <option key={r} value={r}>Min Rating: {r} ⭐</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
+            <select className='btn btn-dark' onChange={(e) => setMinRating(Number(e.target.value))} value={minRating}>
+              {[0, 3, 4, 4.5].map(r => (
+                <option key={r} value={r}>Min Rating: {r}⭐</option>
+              ))}
+            </select>
 
-
-            <button className='btn btn-light' onClick={clearMarkers}>🧹 Clear Markers</button>
-            <button className='btn btn-light' onClick={clearRoute}>🗺️ Clear Route</button>
+            <button className='btn btn-dark' onClick={clearMarkers}>🧹 Clear Markers</button>
+            <button className='btn btn-dark' onClick={clearRoute}>🗺️ Clear Route</button>
 
             {routeSummary && <div style={{ marginLeft: '10px' }}>ETA: {routeSummary}</div>}
           </div>
 
-          <div id="map" ref={mapRef} style={{ height: "100%", width: "100%" }}></div>
+          <div id="map" ref={mapRef} className='rounded' style={{ height: "90%", width: "100%", border:'2px solid black', }}></div>
         </div>
       </div>
     </div>
