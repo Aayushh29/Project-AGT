@@ -25,6 +25,7 @@ function App() {
 
   const goToMap = () => navigate('/map');
   const goToProfile = () => navigate('/profile');
+  const goToNearByRestaurantsList = () => navigate('/nearbyrestaurantslist');
 
   if (!authChecked) {
     return <div className="text-center mt-5">Checking authentication...</div>;
@@ -61,7 +62,7 @@ function App() {
             </div>
 
             {/* Card 2 */}
-            <div className='col-md-4 d-flex justify-content-center mb-4' >
+            <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToNearByRestaurantsList} >
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>Dining</h4>
