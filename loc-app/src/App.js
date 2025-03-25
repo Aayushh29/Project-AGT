@@ -40,7 +40,7 @@ function App() {
     
 
           <div className="col text-center">
-            <h2 className="m-0">App Name</h2>
+            <h2 className="m-0">GeoFoodie</h2>
           </div>
 
           <div className="col-auto" style={{cursor:'pointer'}}>

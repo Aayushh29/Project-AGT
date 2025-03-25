@@ -7,6 +7,9 @@ import profileImg from '../assets/profile.png';
 
 const NearByRestaurantsList = () => {
   const [visiblePlaces, setVisiblePlaces] = useState([]);
+  const [radius, setRadius] = useState(10);
+  const [minRating, setMinRating] = useState(0);
+  const [loading, setLoading] = useState(false);
   const latLngRef = useRef(null);
   const navigate = useNavigate();
 
@@ -34,6 +37,12 @@ const NearByRestaurantsList = () => {
     document.body.appendChild(script);
   }, []);
 
+  useEffect(() => {
+    if (latLngRef.current) {
+      fetchNearby(latLngRef.current);
+    }
+  }, [radius, minRating]);
+
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -49,26 +58,29 @@ const NearByRestaurantsList = () => {
   };
 
   const fetchNearby = (coords) => {
+    setLoading(true);
     const gmaps = window.google.maps;
-    const map = new gmaps.Map(document.createElement("div")); // dummy map
+    const map = new gmaps.Map(document.createElement("div"));
     const service = new gmaps.places.PlacesService(map);
 
     service.nearbySearch(
       {
         location: coords,
-        radius: 10000,
+        radius: radius * 1000,
         type: "restaurant"
       },
       (results, status) => {
         if (status !== gmaps.places.PlacesServiceStatus.OK || !results) {
           alert("No nearby restaurants found.");
+          setVisiblePlaces([]);
+          setLoading(false);
           return;
         }
 
         const origin = new gmaps.LatLng(coords.lat, coords.lng);
 
         const places = results.map(place => {
-          if (!place.geometry?.location) return null;
+          if (!place.geometry?.location || place.rating < minRating) return null;
 
           const distanceMeters = gmaps.geometry.spherical.computeDistanceBetween(
             origin,
@@ -93,6 +105,7 @@ const NearByRestaurantsList = () => {
         }).filter(Boolean);
 
         setVisiblePlaces(places);
+        setLoading(false);
       }
     );
   };
@@ -114,8 +127,29 @@ const NearByRestaurantsList = () => {
       </div>
       <hr />
 
+      <div className="container mb-4">
+        <div className="row g-3">
+          <div className="col-md-6 text-start">
+            <label className="form-label fw-bold">Filter by Radius (km)</label>
+            <select className="form-select" value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+              {[1, 3, 5, 10, 15, 20, 30, 50].map(r => (
+                <option key={r} value={r}>{r} km</option>
+              ))}
+            </select>
+          </div>
+          <div className="col-md-6 text-start">
+            <label className="form-label fw-bold">Minimum Rating</label>
+            <select className="form-select" value={minRating} onChange={(e) => setMinRating(Number(e.target.value))}>
+              {[0, 3, 4, 4.5].map(r => (
+                <option key={r} value={r}>{r} ⭐</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
       <div className="container mt-4" style={{ maxWidth: '700px' }}>
-        <h4 className="mb-3 text-start">Restaurants Found: {visiblePlaces.length}</h4>
+        <h4 className="mb-3 text-start">Restaurants Found: {loading ? 'Loading...' : visiblePlaces.length}</h4>
         <div className="list-group">
           {visiblePlaces.map((place, index) => (
             <div
