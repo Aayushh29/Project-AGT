@@ -4,6 +4,8 @@ import './stylesheets/style.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';
+import locpin from '../assets/location-pin.png';
+import destpin from '../assets/destination-pin.png';
 
 const MapComponent = () => {
   const mapRef = useRef(null);
@@ -38,9 +40,10 @@ const MapComponent = () => {
     if (location.state?.destination) {
       destinationRef.current = location.state.destination;
       setRestaurantDetails(location.state.meta || null);
+      getLocation();
+    } else {
+      getLocation(true); // trigger nearest search if direct access
     }
-
-    getLocation();
   }, [googleReady]);
 
   useEffect(() => {
@@ -54,7 +57,7 @@ const MapComponent = () => {
     }
   }, [routeType]);
 
-  const getLocation = () => {
+  const getLocation = (searchNearest = false) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const coords = {
@@ -62,13 +65,13 @@ const MapComponent = () => {
           lng: position.coords.longitude
         };
         latLngRef.current = coords;
-        initMap(coords);
+        initMap(coords, searchNearest);
       },
       () => alert("Geolocation failed.")
     );
   };
 
-  const initMap = (coords) => {
+  const initMap = (coords, searchNearest = false) => {
     const gmaps = window.google.maps;
     const mapObj = new gmaps.Map(mapRef.current, {
       center: coords,
@@ -80,7 +83,7 @@ const MapComponent = () => {
       map: mapObj,
       title: "You are here",
       icon: {
-        url: 'https://maps.gstatic.com/mapfiles/api-3/images/spotlight-poi2_hdpi.png',
+        url: locpin,
         scaledSize: new gmaps.Size(40, 40)
       }
     });
@@ -92,7 +95,39 @@ const MapComponent = () => {
     if (destinationRef.current) {
       placeDestinationMarker(destinationRef.current);
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
+    } else if (searchNearest) {
+      findNearestRestaurant(coords);
     }
+  };
+
+  const findNearestRestaurant = (coords) => {
+    const gmaps = window.google.maps;
+    const service = new gmaps.places.PlacesService(mapRefObject.current);
+
+    service.nearbySearch(
+      {
+        location: coords,
+        radius: 3000,
+        type: 'restaurant'
+      },
+      (results, status) => {
+        if (status === gmaps.places.PlacesServiceStatus.OK && results.length > 0) {
+          const nearest = results[0];
+          const loc = nearest.geometry.location;
+          const meta = {
+            name: nearest.name,
+            address: nearest.vicinity,
+            rating: nearest.rating || 'N/A',
+            cuisine: nearest.types?.find(t => t.includes("restaurant") && t !== "restaurant")?.replace(/_/g, ' ') || 'Unknown Cuisine',
+            photo: nearest.photos?.[0]?.getUrl({ maxWidth: 400 }) || null
+          };
+          destinationRef.current = { lat: loc.lat(), lng: loc.lng() };
+          setRestaurantDetails(meta);
+          placeDestinationMarker(destinationRef.current);
+          getDirections(loc.lat(), loc.lng());
+        }
+      }
+    );
   };
 
   const placeDestinationMarker = (destination) => {
@@ -102,7 +137,7 @@ const MapComponent = () => {
       map: mapRefObject.current,
       title: "Destination",
       icon: {
-        url: 'https://cdn-icons-png.flaticon.com/512/684/684908.png',
+        url: destpin,
         scaledSize: new gmaps.Size(40, 40)
       }
     });
@@ -142,7 +177,6 @@ const MapComponent = () => {
         const leg = result.routes[0].legs[0];
         setRouteSummary(`${leg.distance.text}, ${leg.duration.text}`);
 
-        // Auto-fit the route bounds on map
         const bounds = new gmaps.LatLngBounds();
         result.routes[0].overview_path.forEach(p => bounds.extend(p));
         map.fitBounds(bounds);
@@ -182,6 +216,13 @@ const MapComponent = () => {
           <h4>Restaurant Details</h4>
           {restaurantDetails ? (
             <>
+              {restaurantDetails.photo && (
+                <img
+                  src={restaurantDetails.photo}
+                  alt="Restaurant"
+                  style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }}
+                />
+              )}
               <h5>{restaurantDetails.name}</h5>
               <p><strong>Address:</strong> {restaurantDetails.address}</p>
               <p><strong>Rating:</strong> {restaurantDetails.rating} ⭐</p>
@@ -193,7 +234,7 @@ const MapComponent = () => {
           )}
 
           <hr />
-          <button className="btn btn-dark w-100 mb-2" onClick={getLocation}>📍 Locate Me</button>
+          <button className="btn btn-dark w-100 mb-2" onClick={() => getLocation(true)}>📍 Locate Me</button>
           <select
             className="form-select mb-2"
             value={routeType}

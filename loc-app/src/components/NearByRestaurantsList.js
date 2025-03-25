@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';
+import locpin from '../assets/location-pin.png'
 
 const NearByRestaurantsList = () => {
   const [visiblePlaces, setVisiblePlaces] = useState([]);

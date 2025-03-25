@@ -32,7 +32,7 @@ jobs:
         run: CI='' npm install -g serve
 
       - name: 🏗️ Build the app
-        run: CI='' nserve -s build
+        run: CI='' serve -s build
 
       - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
