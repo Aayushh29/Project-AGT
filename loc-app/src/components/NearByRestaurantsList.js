@@ -22,8 +22,18 @@ const NearByRestaurantsList = () => {
   };
 
   const handleClick = (place) => {
-    navigate('/map', { state: { destination: place.position } });
-  };
+    navigate('/map', {
+      state: {
+        destination: place.position,
+        meta: {
+          name: place.name,
+          address: place.address,
+          rating: place.rating,
+          cuisine: place.cuisine
+        }
+      }
+    });
+      };
 
   useEffect(() => {
     const script = document.createElement('script');

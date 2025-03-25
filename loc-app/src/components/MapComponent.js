@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './stylesheets/style.css';
 import { useNavigate, useLocation } from 'react-router-dom';
+import './stylesheets/style.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';
@@ -15,7 +15,7 @@ const MapComponent = () => {
   const latLngRef = useRef(null);
   const infowindowRef = useRef(null);
   const [routeSummary, setRouteSummary] = useState(null);
-  const [destinationStateReady, setDestinationStateReady] = useState(false);
+  const [restaurantDetails, setRestaurantDetails] = useState(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -37,25 +37,11 @@ const MapComponent = () => {
 
     if (location.state?.destination) {
       destinationRef.current = location.state.destination;
-      setDestinationStateReady(true);
+      setRestaurantDetails(location.state.meta || null);
     }
 
     getLocation();
   }, [googleReady]);
-
-  useEffect(() => {
-    if (
-      googleReady &&
-      destinationStateReady &&
-      latLngRef.current &&
-      mapRefObject.current &&
-      destinationRef.current
-    ) {
-      placeDestinationMarker(destinationRef.current);
-      getDirections(destinationRef.current.lat, destinationRef.current.lng);
-      setDestinationStateReady(false);
-    }
-  }, [googleReady, destinationStateReady]);
 
   const getLocation = () => {
     navigator.geolocation.getCurrentPosition(
@@ -150,8 +136,18 @@ const MapComponent = () => {
     });
   };
 
+  const clearRoute = () => {
+    if (directionsRendererRef.current) {
+      directionsRendererRef.current.setMap(null);
+      directionsRendererRef.current.set('directions', null);
+      directionsRendererRef.current = null;
+      destinationRef.current = null;
+      setRouteSummary(null);
+    }
+  };
+
   return (
-    <div className="container text-center">
+    <div className="container-fluid text-center">
       <div className="row align-items-center position-relative">
         <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToHome}>
           <img src={back} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Back" />
@@ -165,9 +161,38 @@ const MapComponent = () => {
       </div>
       <hr />
 
-      <div style={{ display: 'flex', height: '90vh' }}>
-        <div style={{ flex: 1, position: 'relative' }}>
-          <div id="map" ref={mapRef} className='rounded' style={{ height: "100%", width: "100%", border: '2px solid black' }}></div>
+      <div className="row" style={{ height: '85vh' }}>
+        <div className="col-md-4 border-end p-3 text-start bg-light overflow-auto">
+          <h4>Restaurant Details</h4>
+          {restaurantDetails ? (
+            <>
+              <h5>{restaurantDetails.name}</h5>
+              <p><strong>Address:</strong> {restaurantDetails.address}</p>
+              <p><strong>Rating:</strong> {restaurantDetails.rating} ⭐</p>
+              <p><strong>Cuisine:</strong> {restaurantDetails.cuisine}</p>
+              {routeSummary && <p><strong>ETA:</strong> {routeSummary}</p>}
+            </>
+          ) : (
+            <p>Loading restaurant info...</p>
+          )}
+
+          <hr />
+          <button className="btn btn-dark w-100 mb-2" onClick={getLocation}>📍 Locate Me</button>
+          <select
+            className="form-select mb-2"
+            value={routeType}
+            onChange={(e) => setRouteType(e.target.value)}
+          >
+            <option value="DRIVING">Driving</option>
+            <option value="WALKING">Walking</option>
+            <option value="BICYCLING">Bicycling</option>
+            <option value="TRANSIT">Transit</option>
+          </select>
+          <button className="btn btn-outline-danger w-100" onClick={clearRoute}>🧹 Clear Route</button>
+        </div>
+
+        <div className="col-md-8 position-relative">
+          <div ref={mapRef} className='rounded' style={{ height: "100%", width: "100%", border: '2px solid black' }}></div>
         </div>
       </div>
     </div>
