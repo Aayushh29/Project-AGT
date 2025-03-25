@@ -6,8 +6,9 @@ import App from './App';
 import MapComponent from './components/MapComponent';
 import Profile from './components/Profile';
 import Signup from './components/SignUp';
-import Login
- from './components/Login';
+import Login from './components/Login';
+import PrivateRoute from './components/PrivateRoute';
+
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <BrowserRouter>
@@ -17,6 +18,14 @@ root.render(
       <Route path="/profile" element={<Profile />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
+      {/* <Route
+          path="/profile"
+          element={
+            <PrivateRoute>
+              <Profile />
+            </PrivateRoute>
+          }
+        /> */}
     </Routes>
   </BrowserRouter>
 );
