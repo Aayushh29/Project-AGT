@@ -4,7 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import locationImg from './assets/location.png';
 import profileImg from './assets/profile.png';
 
-function App() {
+function HomePage() {
   const navigate = useNavigate();
 
   const goToMap = () => {
@@ -12,7 +12,7 @@ function App() {
   };
 
   const goToProfile = () => {
-    navigate('/login');
+    navigate('/signup');
   };
 
   return (
@@ -62,4 +62,4 @@ function App() {
   );
 }
 
-export default App;
+export default HomePage;

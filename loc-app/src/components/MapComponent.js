@@ -30,7 +30,7 @@ const MapComponent = () => {
     navigate('/');
   };
 
-  const goToProfile = () =>{
+  const goToProfile = () => {
     navigate('/');
   };
 
@@ -377,7 +377,7 @@ const MapComponent = () => {
       <div className="row align-items-center position-relative">
         {/* Image at top-left */}
         <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToHome}>
-          <img src={back} style={{ width: '2rem', height: '2rem' , margin:'10px'}} alt="Back" />
+          <img src={back} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Back" />
         </div>
 
         {/* Centered "Map" text */}
@@ -385,7 +385,7 @@ const MapComponent = () => {
           <h2 className="m-0">Map</h2>
         </div>
         <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToProfile}>
-          <img src={profileImg} style={{ width: '2rem', height: '2rem', margin:'10px' }} alt="Profile" />
+          <img src={profileImg} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Profile" />
         </div>
       </div>
       <hr />
