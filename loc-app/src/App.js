@@ -5,7 +5,9 @@ import locationImg from './assets/location.png';
 import profileImg from './assets/profile.png';
 import { auth } from './firebaseconfig'; // adjust path if needed
 import { onAuthStateChanged } from 'firebase/auth';
-import logoutImg from './assets/logout.png';
+import locImg from './assets/location.png';
+import restImg from './assets/restaurant.png';
+import locHistImg from './assets/location-history.png';
 
 function App() {
   const navigate = useNavigate();
@@ -56,7 +58,7 @@ function App() {
               <div className='card' style={{ width: '20rem', height: '25rem', cursor: 'pointer' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>Map</h4>
-                  <img src={locationImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
+                  <img src={locImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
                 </div>
               </div>
             </div>
@@ -66,7 +68,7 @@ function App() {
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>Dining</h4>
-                  <img src={locationImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
+                  <img src={restImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
                 </div>
               </div>
             </div>
@@ -76,7 +78,7 @@ function App() {
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>Map</h4>
-                  <img src={locationImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
+                  <img src={locHistImg} alt="Placeholder" style={{ width: '2rem', height: '2rem' }} />
                 </div>
               </div>
             </div>

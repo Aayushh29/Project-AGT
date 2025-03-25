@@ -18,6 +18,8 @@ const MapComponent = () => {
   const infowindowRef = useRef(null);
   const [routeSummary, setRouteSummary] = useState(null);
   const [restaurantDetails, setRestaurantDetails] = useState(null);
+  const userMarkerRef = useRef(null);
+  const destinationMarkerRef = useRef(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -78,7 +80,8 @@ const MapComponent = () => {
       zoom: 14
     });
 
-    new gmaps.Marker({
+    if (userMarkerRef.current) userMarkerRef.current.setMap(null);
+    userMarkerRef.current = new gmaps.Marker({
       position: coords,
       map: mapObj,
       title: "You are here",
@@ -132,7 +135,8 @@ const MapComponent = () => {
 
   const placeDestinationMarker = (destination) => {
     const gmaps = window.google.maps;
-    new gmaps.Marker({
+    if (destinationMarkerRef.current) destinationMarkerRef.current.setMap(null);
+    destinationMarkerRef.current = new gmaps.Marker({
       position: destination,
       map: mapRefObject.current,
       title: "Destination",
@@ -193,6 +197,10 @@ const MapComponent = () => {
       directionsRendererRef.current = null;
       destinationRef.current = null;
       setRouteSummary(null);
+    }
+    if (destinationMarkerRef.current) {
+      destinationMarkerRef.current.setMap(null);
+      destinationMarkerRef.current = null;
     }
   };
 
