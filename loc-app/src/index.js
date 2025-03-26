@@ -9,6 +9,7 @@ import Signup from './components/SignUp';
 import Login from './components/Login';
 import PrivateRoute from './components/PrivateRoute';
 import NearbyRestaurantsList from './components/NearByRestaurantsList';
+import VisitHistory from './components/VisitHistory';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -19,6 +20,7 @@ root.render(
       <Route path="/profile" element={<Profile />} />
       <Route path="/signup" element={<Signup />} />
       <Route path="/login" element={<Login />} />
+      <Route path="/history" element={<VisitHistory />} />
       <Route path="/nearbyrestaurantslist" element={<NearbyRestaurantsList />} />
       {/* <Route
           path="/profile"

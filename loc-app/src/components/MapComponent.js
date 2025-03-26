@@ -6,10 +6,8 @@ import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';
 import locpin from '../assets/location-pin.png';
 import destpin from '../assets/destination-pin.png';
-import { getFirestore, doc, getDoc, setDoc, updateDoc, increment } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { getFirestore, doc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 
 const MapComponent = () => {
   const mapRef = useRef(null);
@@ -32,11 +30,13 @@ const MapComponent = () => {
   const db = getFirestore();
   const auth = getAuth();
 
+  const visitedTodayRef = useRef(new Set());
+
+  const [showModal, setShowModal] = useState(false);
+  const [pendingRating, setPendingRating] = useState(null);
+
   const goToHome = () => navigate('/');
   const goToProfile = () => navigate('/profile');
-
-  const visitedTodayRef = useRef(new Set());
-  const arrivalTimeRef = useRef(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -46,11 +46,11 @@ const MapComponent = () => {
     script.onload = () => setGoogleReady(true);
     document.body.appendChild(script);
   }, []);
+
   useEffect(() => {
     hasPrompted.current = false;
-    visitedTodayRef.current.clear(); // 💡 clear all previously visited entries
+    visitedTodayRef.current.clear();
   }, [googleReady]);
-
 
   useEffect(() => {
     if (!googleReady) return;
@@ -58,70 +58,57 @@ const MapComponent = () => {
     if (location.state?.destination) {
       destinationRef.current = location.state.destination;
       setRestaurantDetails(location.state?.meta ?? {
-        name: 'Unknown',
-        address: 'Unknown',
-        rating: 'N/A',
-        cuisine: 'Unknown'
+        name: 'Unknown', address: 'Unknown', rating: 'N/A', cuisine: 'Unknown'
       });
-
       getLocation();
-    }
-    else {
+    } else {
       getLocation(true);
     }
   }, [googleReady]);
 
   useEffect(() => {
-    if (
-      googleReady &&
-      latLngRef.current &&
-      mapRefObject.current &&
-      destinationRef.current &&
-      restaurantDetails &&
-      user
-    ) {
+    if (googleReady && latLngRef.current && mapRefObject.current && destinationRef.current && restaurantDetails && user) {
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
-      startProximityWatcher(); // ✅ Now runs ONLY when everything is loaded
+      startProximityWatcher();
     }
   }, [routeType, googleReady, restaurantDetails, user]);
 
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser ?? null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const getLocation = (searchNearest = false) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
+        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
         latLngRef.current = coords;
         initMap(coords, searchNearest);
       },
-      () => alert("Geolocation failed.")
+      () => 
+      //   alert("Geolocation failed."),
+      // { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+      console.log("Geolocation failed")
     );
   };
 
   const initMap = (coords, searchNearest = false) => {
-
     const gmaps = window.google.maps;
-    const mapObj = new gmaps.Map(mapRef.current, {
-      center: coords,
-      zoom: 14
-    });
+    const mapObj = new gmaps.Map(mapRef.current, { center: coords, zoom: 14 });
+    mapRefObject.current = mapObj;
 
     if (userMarkerRef.current) userMarkerRef.current.setMap(null);
     userMarkerRef.current = new gmaps.Marker({
       position: coords,
       map: mapObj,
       title: "You are here",
-      icon: {
-        url: locpin,
-        scaledSize: new gmaps.Size(40, 40)
-      }
+      icon: { url: locpin, scaledSize: new gmaps.Size(40, 40) }
     });
 
     infowindowRef.current = new gmaps.InfoWindow({ content: "You are here!" });
     infowindowRef.current.open(mapObj);
-    mapRefObject.current = mapObj;
 
     if (destinationRef.current) {
       placeDestinationMarker(destinationRef.current);
@@ -135,74 +122,24 @@ const MapComponent = () => {
     const gmaps = window.google.maps;
     const service = new gmaps.places.PlacesService(mapRefObject.current);
 
-    service.nearbySearch(
-      {
-        location: coords,
-        radius: 3000,
-        type: 'restaurant'
-      },
-      (results, status) => {
-        if (status === gmaps.places.PlacesServiceStatus.OK && results.length > 0) {
-          const nearest = results[0];
-          const loc = nearest.geometry.location;
-          const meta = {
-            name: nearest.name || 'Unnamed Place',
-            address: nearest.vicinity || 'Unknown',
-            rating: nearest.rating || 'N/A',
-            cuisine: nearest.types?.find(t => t.includes("restaurant") && t !== "restaurant")?.replace(/_/g, ' ') || 'Unknown Cuisine',
-            photo: nearest.photos?.[0]?.getUrl({ maxWidth: 400 }) || null
-          };
-
-          destinationRef.current = { lat: loc.lat(), lng: loc.lng() };
-          setRestaurantDetails(meta);
-          placeDestinationMarker(destinationRef.current);
-          getDirections(loc.lat(), loc.lng());
-        }
+    service.nearbySearch({ location: coords, radius: 3000, type: 'restaurant' }, (results, status) => {
+      if (status === gmaps.places.PlacesServiceStatus.OK && results.length > 0) {
+        const nearest = results[0];
+        const loc = nearest.geometry.location;
+        const meta = {
+          name: nearest.name || 'Unnamed Place',
+          address: nearest.vicinity || 'Unknown',
+          rating: nearest.rating || 'N/A',
+          cuisine: nearest.types?.find(t => t.includes("restaurant") && t !== "restaurant")?.replace(/_/g, ' ') || 'Unknown Cuisine',
+          photo: nearest.photos?.[0]?.getUrl({ maxWidth: 400 }) || null
+        };
+        destinationRef.current = { lat: loc.lat(), lng: loc.lng() };
+        setRestaurantDetails(meta);
+        placeDestinationMarker(destinationRef.current);
+        getDirections(loc.lat(), loc.lng());
       }
-    );
+    });
   };
-  const checkIfVisitedToday = async () => {
-    if (!user || !restaurantDetails?.name) {
-      console.warn("⚠️ Skipping check — missing user or restaurant name.", { user, restaurantDetails });
-      return false;
-    }
-
-    const placeName = restaurantDetails.name;
-
-    const visitsRef = collection(db, `visitHistory/${user.uid}/visits`);
-    const snapshot = await getDocs(visitsRef, { source: 'server' });
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    let matched = false;
-
-    for (const docSnap of snapshot.docs) {
-      const data = docSnap.data();
-      const ts = data.timestamp?.toDate?.();
-      const visitDate = ts || new Date(data.timestamp);
-      visitDate.setHours(0, 0, 0, 0);
-
-      if (
-        visitDate.getTime() === today.getTime() &&
-        data.placeName === placeName
-      ) {
-        matched = true;
-        break;
-      }
-    }
-
-    if (matched) {
-      console.log("✅ Visit already recorded for today:", placeName);
-      visitedTodayRef.current.add(placeName);
-      return true;
-    } else {
-      console.log("🔁 No visit recorded today for:", placeName);
-      visitedTodayRef.current.delete(placeName);
-      return false;
-    }
-  };
-
 
   const placeDestinationMarker = (destination) => {
     const gmaps = window.google.maps;
@@ -211,10 +148,7 @@ const MapComponent = () => {
       position: destination,
       map: mapRefObject.current,
       title: "Destination",
-      icon: {
-        url: destpin,
-        scaledSize: new gmaps.Size(40, 40)
-      }
+      icon: { url: destpin, scaledSize: new gmaps.Size(40, 40) }
     });
   };
 
@@ -230,22 +164,14 @@ const MapComponent = () => {
     const directionsService = new gmaps.DirectionsService();
     if (!directionsRendererRef.current) {
       directionsRendererRef.current = new gmaps.DirectionsRenderer({
-        polylineOptions: {
-          strokeColor: "#003366",
-          strokeOpacity: 0.9,
-          strokeWeight: 6
-        }
+        polylineOptions: { strokeColor: "#003366", strokeOpacity: 0.9, strokeWeight: 6 }
       });
     }
 
     directionsRendererRef.current.setMap(map);
     directionsRendererRef.current.set('directions', null);
 
-    directionsService.route({
-      origin: start,
-      destination: end,
-      travelMode: gmaps.TravelMode[routeType]
-    }, (result, status) => {
+    directionsService.route({ origin: start, destination: end, travelMode: gmaps.TravelMode[routeType] }, (result, status) => {
       if (status === gmaps.DirectionsStatus.OK) {
         directionsRendererRef.current.setDirections(result);
         infowindowRef.current?.close();
@@ -256,51 +182,28 @@ const MapComponent = () => {
         result.routes[0].overview_path.forEach(p => bounds.extend(p));
         map.fitBounds(bounds);
 
-        // ✅ Trigger proximity watch only after directions are loaded
         startProximityWatcher();
       } else {
         alert("Could not get directions: " + status);
       }
     });
-
-
   };
+
   const startProximityWatcher = () => {
+    const gmaps = window.google.maps;
+
     const watchId = navigator.geolocation.watchPosition(async (pos) => {
-      const userPos = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
-      const destPos = new window.google.maps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
-      const distance = window.google.maps.geometry.spherical.computeDistanceBetween(userPos, destPos);
-  
-      console.log("📍 Proximity check:", { distance, restaurantDetails });
-  
-      if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') {
-        console.warn("⚠️ Skipping rating prompt — invalid restaurant details");
-        return;
-      }
-  
-      if (distance < 100) {
-        if (!arrivalTimeRef.current) {
-          arrivalTimeRef.current = Date.now();
-          console.log("🕒 User arrived near destination. Timer started.");
-        } else {
-          const minutesSpent = (Date.now() - arrivalTimeRef.current) / (1000 * 60);
-          console.log(`⏳ User has been nearby for ${minutesSpent.toFixed(1)} minutes`);
-  
-          if (minutesSpent >= 30 && !hasPrompted.current) {
-            hasPrompted.current = true;
-  
-            const alreadyVisited = await checkIfVisitedToday();
-            if (!alreadyVisited) {
-              showRatingPrompt();
-            } else {
-              console.log("⛔ Already rated today, skipping prompt.");
-            }
-  
-            navigator.geolocation.clearWatch(watchId); // ✅ Always stop watching
-          }
-        }
-      } else {
-        arrivalTimeRef.current = null; // Reset timer if user walks away
+      const userPos = new gmaps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      const destPos = new gmaps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
+      const distance = gmaps.geometry.spherical.computeDistanceBetween(userPos, destPos);
+
+      if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') return;
+
+      if (distance < 100 && !hasPrompted.current) {
+        hasPrompted.current = true;
+        const alreadyVisited = await checkIfVisitedToday();
+        if (!alreadyVisited) showRatingPrompt();
+        navigator.geolocation.clearWatch(watchId);
       }
     }, undefined, {
       enableHighAccuracy: true,
@@ -308,26 +211,33 @@ const MapComponent = () => {
       timeout: 10000
     });
   };
-  
-  const [showModal, setShowModal] = useState(false);
-  const [pendingRating, setPendingRating] = useState(null);
+
+  const checkIfVisitedToday = async () => {
+    if (!user || !restaurantDetails?.name) return false;
+
+    const visitsRef = collection(db, `visitHistory/${user.uid}/visits`);
+    const snapshot = await getDocs(visitsRef, { source: 'server' });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    for (const docSnap of snapshot.docs) {
+      const data = docSnap.data();
+      const visitDate = data.timestamp?.toDate?.() || new Date(data.timestamp);
+      visitDate.setHours(0, 0, 0, 0);
+
+      if (visitDate.getTime() === today.getTime() && data.placeName === restaurantDetails.name) {
+        return true;
+      }
+    }
+    return false;
+  };
 
   const showRatingPrompt = () => {
-    if (!restaurantDetails || !restaurantDetails.name) {
-      console.warn("🚫 Can't show rating prompt: restaurant details are missing.");
-      return;
-    }
-
-    setShowModal(true); // show modal instead of prompt
-
-    console.log("📍 Attempting to prompt for rating. Restaurant:", restaurantDetails);
-    // const rating = prompt("You've arrived! How would you rate this place? (1–5)");
-    // const parsed = parseInt(rating);
-    // if (parsed >= 1 && parsed <= 5) {
-    //   submitRating(parsed);
-    //   visitedTodayRef.current.add(restaurantDetails.name);
-    // }
+    if (!restaurantDetails || !restaurantDetails.name) return;
+    setShowModal(true);
   };
+
   const handleRatingSubmit = () => {
     if (pendingRating >= 1 && pendingRating <= 5) {
       submitRating(pendingRating);
@@ -337,53 +247,22 @@ const MapComponent = () => {
     }
   };
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        setUser(firebaseUser);
-        console.log("✅ Auth user detected:", firebaseUser.uid);
-      } else {
-        setUser(null);
-        console.warn("🚫 No authenticated user.");
-      }
-    });
-
-    return () => unsubscribe();
-  }, []);
-
-
   const submitRating = async (rating) => {
-    if (!user) {
-      console.error("🚫 User not authenticated");
-      return;
-    }
-
-    if (!restaurantDetails) {
-      console.error("🚫 No restaurant details available. Skipping rating submission.");
-      return;
-    }
+    if (!user || !restaurantDetails) return;
 
     const now = new Date();
-    const visitId = `${Date.now()}`;
-    const visitRef = doc(db, `visitHistory/${user.uid}/visits/${visitId}`);
+    const visitRef = doc(db, `visitHistory/${user.uid}/visits/${Date.now()}`);
 
-    try {
-      await setDoc(visitRef, {
-        userId: user.uid,
-        placeName: restaurantDetails.name,
-        address: restaurantDetails.address,
-        cuisine: restaurantDetails.cuisine,
-        rating,
-        timestamp: now
-      });
+    await setDoc(visitRef, {
+      userId: user.uid,
+      placeName: restaurantDetails.name,
+      address: restaurantDetails.address,
+      cuisine: restaurantDetails.cuisine,
+      rating,
+      timestamp: now
+    });
 
-      visitedTodayRef.current.add(restaurantDetails.name); // ⬅️ add here
-      hasPrompted.current = true;
-      alert('✅ Thanks for rating!');
-
-    } catch (err) {
-      console.error("🔥 Firestore write failed:", err.message);
-    }
+    alert('✅ Thanks for rating!');
   };
 
   const clearRoute = () => {
@@ -391,26 +270,26 @@ const MapComponent = () => {
       directionsRendererRef.current.setMap(null);
       directionsRendererRef.current.set('directions', null);
       directionsRendererRef.current = null;
-      destinationRef.current = null;
-      setRouteSummary(null);
     }
     if (destinationMarkerRef.current) {
       destinationMarkerRef.current.setMap(null);
       destinationMarkerRef.current = null;
     }
+    destinationRef.current = null;
+    setRouteSummary(null);
   };
 
   return (
     <div className="container-fluid text-center">
       <div className="row align-items-center position-relative">
-        <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToHome}>
-          <img src={back} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Back" />
+        <div className="col-auto" onClick={goToHome} style={{ cursor: 'pointer' }}>
+          <img src={back} alt="Back" style={{ width: '2rem', height: '2rem', margin: '10px' }} />
         </div>
         <div className="col text-center">
           <h2 className="m-0">Map</h2>
         </div>
-        <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToProfile}>
-          <img src={profileImg} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Profile" />
+        <div className="col-auto" onClick={goToProfile} style={{ cursor: 'pointer' }}>
+          <img src={profileImg} alt="Profile" style={{ width: '2rem', height: '2rem', margin: '10px' }} />
         </div>
       </div>
       <hr />
@@ -421,40 +300,30 @@ const MapComponent = () => {
           {restaurantDetails ? (
             <>
               {restaurantDetails.photo && (
-                <img
-                  src={restaurantDetails.photo}
-                  alt="Restaurant"
-                  style={{ width: '100%', height: 'auto', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }}
-                />
+                <img src={restaurantDetails.photo} alt="Restaurant" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: '8px', marginBottom: '10px' }} />
               )}
               <h5>{restaurantDetails.name}</h5>
               <p><strong>Address:</strong> {restaurantDetails.address}</p>
               <p><strong>Rating:</strong> {restaurantDetails.rating} ⭐</p>
               <p><strong>Cuisine:</strong> {restaurantDetails.cuisine}</p>
               {routeSummary && <p><strong>ETA:</strong> {routeSummary}</p>}
+              <hr />
+              <button className="btn btn-dark w-100 mb-2" onClick={() => getLocation(true)}>📍 Locate Me</button>
+              <select className="form-select mb-2" value={routeType} onChange={(e) => setRouteType(e.target.value)}>
+                <option value="DRIVING">Driving</option>
+                <option value="WALKING">Walking</option>
+                <option value="BICYCLING">Bicycling</option>
+                <option value="TRANSIT">Transit</option>
+              </select>
+              <button className="btn btn-outline-danger w-100" onClick={clearRoute}>🧹 Clear Route</button>
             </>
-          ) : (
-            <p>Loading restaurant info...</p>
-          )}
-
-          <hr />
-          <button className="btn btn-dark w-100 mb-2" onClick={() => getLocation(true)}>📍 Locate Me</button>
-          <select
-            className="form-select mb-2"
-            value={routeType}
-            onChange={(e) => setRouteType(e.target.value)}
-          >
-            <option value="DRIVING">Driving</option>
-            <option value="WALKING">Walking</option>
-            <option value="BICYCLING">Bicycling</option>
-            <option value="TRANSIT">Transit</option>
-          </select>
-          <button className="btn btn-outline-danger w-100" onClick={clearRoute}>🧹 Clear Route</button>
+          ) : <p>Loading restaurant info...</p>}
         </div>
 
         <div className="col-md-8 position-relative">
           <div ref={mapRef} className='rounded' style={{ height: "100%", width: "100%", border: '2px solid black' }}></div>
         </div>
+
         {showModal && (
           <div className="modal d-block" tabIndex="-1">
             <div className="modal-dialog modal-dialog-centered">
@@ -477,15 +346,12 @@ const MapComponent = () => {
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                  <button className="btn btn-success" onClick={handleRatingSubmit} disabled={!pendingRating}>
-                    Submit
-                  </button>
+                  <button className="btn btn-success" onClick={handleRatingSubmit} disabled={!pendingRating}>Submit</button>
                 </div>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </div>
   );

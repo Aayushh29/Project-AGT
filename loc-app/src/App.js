@@ -27,6 +27,7 @@ function App() {
 
   const goToMap = () => navigate('/map');
   const goToProfile = () => navigate('/profile');
+  const goToHistory = () => navigate('/history');
   const goToNearByRestaurantsList = () => navigate('/nearbyrestaurantslist');
 
   if (!authChecked) {
@@ -38,14 +39,14 @@ function App() {
       {/* Top Bar */}
       <div className="container text-center">
         {/* Top Bar */}
-        <div className="row align-items-center position-relative" style={{marginTop:'20px'}}>
-    
+        <div className="row align-items-center position-relative" style={{ marginTop: '20px' }}>
+
 
           <div className="col text-center">
             <h2 className="m-0">GeoFoodie</h2>
           </div>
 
-          <div className="col-auto" style={{cursor:'pointer'}}>
+          <div className="col-auto" style={{ cursor: 'pointer' }}>
             <img src={profileImg} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Profile" onClick={goToProfile} />
           </div>
         </div>
@@ -54,7 +55,7 @@ function App() {
         <div className="d-flex justify-content-center mt-5">
           <div className="row" style={{ maxWidth: '1000px' }}>
             {/* Card 1 */}
-            <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToMap}>
+            <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToMap} style={{ cursor: 'pinter' }}>
               <div className='card' style={{ width: '20rem', height: '25rem', cursor: 'pointer' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>Map</h4>
@@ -64,7 +65,7 @@ function App() {
             </div>
 
             {/* Card 2 */}
-            <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToNearByRestaurantsList} >
+            <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToNearByRestaurantsList} style={{ cursor: 'pointer' }} >
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>Dining</h4>
@@ -74,7 +75,7 @@ function App() {
             </div>
 
             {/* Card 3 */}
-            <div className='col-md-4 d-flex justify-content-center mb-4'>
+            <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToHistory} style={{ cursor: 'pointer' }}>
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
                   <h4 className='text-center mb-4'>History</h4>
@@ -84,8 +85,8 @@ function App() {
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 
