@@ -67,11 +67,19 @@ const MapComponent = () => {
   }, [googleReady]);
 
   useEffect(() => {
-    if (googleReady && latLngRef.current && mapRefObject.current && destinationRef.current && restaurantDetails && user) {
+    if (
+      googleReady &&
+      latLngRef.current &&
+      mapRefObject.current &&
+      destinationRef.current &&
+      restaurantDetails &&
+      user
+    ) {
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
       startProximityWatcher();
     }
-  }, [routeType, googleReady, restaurantDetails, user]);
+  }, [googleReady, latLngRef.current, destinationRef.current, restaurantDetails, user]);
+  
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
@@ -236,16 +244,22 @@ const MapComponent = () => {
     });
   };
 
+  const watcherIdRef = useRef(null);
+
   const startProximityWatcher = () => {
     const gmaps = window.google.maps;
-
+  
+    if (watcherIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watcherIdRef.current);
+    }
+  
     const watchId = navigator.geolocation.watchPosition(async (pos) => {
       const userPos = new gmaps.LatLng(pos.coords.latitude, pos.coords.longitude);
       const destPos = new gmaps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
       const distance = gmaps.geometry.spherical.computeDistanceBetween(userPos, destPos);
-
+  
       if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') return;
-
+  
       if (distance < 100 && !hasPrompted.current) {
         hasPrompted.current = true;
         const alreadyVisited = await checkIfVisitedToday();
@@ -257,8 +271,10 @@ const MapComponent = () => {
       maximumAge: 10000,
       timeout: 10000
     });
+  
+    watcherIdRef.current = watchId;
   };
-
+  
   const checkIfVisitedToday = async () => {
     if (!user || !restaurantDetails?.name) return false;
 
