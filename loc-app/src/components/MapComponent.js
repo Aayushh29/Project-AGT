@@ -36,6 +36,7 @@ const MapComponent = () => {
   const goToProfile = () => navigate('/profile');
 
   const visitedTodayRef = useRef(new Set());
+  const arrivalTimeRef = useRef(null);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -264,37 +265,50 @@ const MapComponent = () => {
 
 
   };
-
   const startProximityWatcher = () => {
     const watchId = navigator.geolocation.watchPosition(async (pos) => {
       const userPos = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
       const destPos = new window.google.maps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
       const distance = window.google.maps.geometry.spherical.computeDistanceBetween(userPos, destPos);
-
+  
       console.log("📍 Proximity check:", { distance, restaurantDetails });
-
-      if (distance < 100 && !hasPrompted.current) {
-
-        // 🚨 Wait until restaurantDetails is fully loaded
-        if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') {
-          console.warn("⚠️ Skipping rating prompt — invalid restaurant details");
-          navigator.geolocation.clearWatch(watchId);
-          return;
-        }
-
-        const alreadyVisited = await checkIfVisitedToday();
-
-        if (!alreadyVisited) {
-          showRatingPrompt();
-        } else {
-          console.log("⛔ Already rated today, skipping prompt.");
-        }
-
-        navigator.geolocation.clearWatch(watchId); // Always clear watch
+  
+      if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') {
+        console.warn("⚠️ Skipping rating prompt — invalid restaurant details");
+        return;
       }
+  
+      if (distance < 100) {
+        if (!arrivalTimeRef.current) {
+          arrivalTimeRef.current = Date.now();
+          console.log("🕒 User arrived near destination. Timer started.");
+        } else {
+          const minutesSpent = (Date.now() - arrivalTimeRef.current) / (1000 * 60);
+          console.log(`⏳ User has been nearby for ${minutesSpent.toFixed(1)} minutes`);
+  
+          if (minutesSpent >= 30 && !hasPrompted.current) {
+            hasPrompted.current = true;
+  
+            const alreadyVisited = await checkIfVisitedToday();
+            if (!alreadyVisited) {
+              showRatingPrompt();
+            } else {
+              console.log("⛔ Already rated today, skipping prompt.");
+            }
+  
+            navigator.geolocation.clearWatch(watchId); // ✅ Always stop watching
+          }
+        }
+      } else {
+        arrivalTimeRef.current = null; // Reset timer if user walks away
+      }
+    }, undefined, {
+      enableHighAccuracy: true,
+      maximumAge: 10000,
+      timeout: 10000
     });
   };
-
+  
   const [showModal, setShowModal] = useState(false);
   const [pendingRating, setPendingRating] = useState(null);
 
