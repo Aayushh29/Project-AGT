@@ -45,6 +45,11 @@ const MapComponent = () => {
     script.onload = () => setGoogleReady(true);
     document.body.appendChild(script);
   }, []);
+  useEffect(() => {
+    hasPrompted.current = false;
+    visitedTodayRef.current.clear(); // 💡 clear all previously visited entries
+  }, [googleReady]);
+
 
   useEffect(() => {
     if (!googleReady) return;
@@ -57,7 +62,7 @@ const MapComponent = () => {
         rating: 'N/A',
         cuisine: 'Unknown'
       });
-      
+
       getLocation();
     }
     else {
@@ -140,12 +145,13 @@ const MapComponent = () => {
           const nearest = results[0];
           const loc = nearest.geometry.location;
           const meta = {
-            name: nearest.name,
-            address: nearest.vicinity,
+            name: nearest.name || 'Unnamed Place',
+            address: nearest.vicinity || 'Unknown',
             rating: nearest.rating || 'N/A',
             cuisine: nearest.types?.find(t => t.includes("restaurant") && t !== "restaurant")?.replace(/_/g, ' ') || 'Unknown Cuisine',
             photo: nearest.photos?.[0]?.getUrl({ maxWidth: 400 }) || null
           };
+
           destinationRef.current = { lat: loc.lat(), lng: loc.lng() };
           setRestaurantDetails(meta);
           placeDestinationMarker(destinationRef.current);
@@ -154,20 +160,21 @@ const MapComponent = () => {
       }
     );
   };
-
-
   const checkIfVisitedToday = async () => {
-    if (!user || !restaurantDetails?.name) return false;
-
-    if (visitedTodayRef.current.has(restaurantDetails.name)) {
-      return true;
+    if (!user || !restaurantDetails?.name) {
+      console.warn("⚠️ Skipping check — missing user or restaurant name.", { user, restaurantDetails });
+      return false;
     }
 
+    const placeName = restaurantDetails.name;
+
     const visitsRef = collection(db, `visitHistory/${user.uid}/visits`);
-    const snapshot = await getDocs(visitsRef, { source: 'server' }); // 👈 Force fetch from server
+    const snapshot = await getDocs(visitsRef, { source: 'server' });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+
+    let matched = false;
 
     for (const docSnap of snapshot.docs) {
       const data = docSnap.data();
@@ -177,13 +184,22 @@ const MapComponent = () => {
 
       if (
         visitDate.getTime() === today.getTime() &&
-        data.placeName === restaurantDetails.name
+        data.placeName === placeName
       ) {
-        return true;
+        matched = true;
+        break;
       }
     }
 
-    return false;
+    if (matched) {
+      console.log("✅ Visit already recorded for today:", placeName);
+      visitedTodayRef.current.add(placeName);
+      return true;
+    } else {
+      console.log("🔁 No visit recorded today for:", placeName);
+      visitedTodayRef.current.delete(placeName);
+      return false;
+    }
   };
 
 
@@ -250,46 +266,46 @@ const MapComponent = () => {
   };
 
   const startProximityWatcher = () => {
-    
-    const watchId = navigator.geolocation.watchPosition((pos) => {
+    const watchId = navigator.geolocation.watchPosition(async (pos) => {
       const userPos = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
       const destPos = new window.google.maps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
       const distance = window.google.maps.geometry.spherical.computeDistanceBetween(userPos, destPos);
-      console.log("📍 Proximity detected. Details:", {
-        distance,
-        restaurantDetails,
-        destination: destinationRef.current,
-        userLocation: userPos.toJSON()
-      });
-      
+
+      console.log("📍 Proximity check:", { distance, restaurantDetails });
+
       if (distance < 100 && !hasPrompted.current) {
-        hasPrompted.current = true;
 
-        checkIfVisitedToday().then((alreadyVisited) => {
-          if (!alreadyVisited) {
-            showRatingPrompt(); // ✅ Only show if NOT visited
-          } else {
-            console.log("⛔ Already rated today, skipping prompt.");
-          }
+        // 🚨 Wait until restaurantDetails is fully loaded
+        if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') {
+          console.warn("⚠️ Skipping rating prompt — invalid restaurant details");
+          navigator.geolocation.clearWatch(watchId);
+          return;
+        }
 
-          navigator.geolocation.clearWatch(watchId); // ✅ Always stop watching
-        });
+        const alreadyVisited = await checkIfVisitedToday();
+
+        if (!alreadyVisited) {
+          showRatingPrompt();
+        } else {
+          console.log("⛔ Already rated today, skipping prompt.");
+        }
+
+        navigator.geolocation.clearWatch(watchId); // Always clear watch
       }
-
-
     });
   };
+
   const [showModal, setShowModal] = useState(false);
-const [pendingRating, setPendingRating] = useState(null);
+  const [pendingRating, setPendingRating] = useState(null);
 
   const showRatingPrompt = () => {
     if (!restaurantDetails || !restaurantDetails.name) {
       console.warn("🚫 Can't show rating prompt: restaurant details are missing.");
       return;
     }
-  
+
     setShowModal(true); // show modal instead of prompt
-  
+
     console.log("📍 Attempting to prompt for rating. Restaurant:", restaurantDetails);
     // const rating = prompt("You've arrived! How would you rate this place? (1–5)");
     // const parsed = parseInt(rating);
@@ -306,7 +322,7 @@ const [pendingRating, setPendingRating] = useState(null);
       setPendingRating(null);
     }
   };
-  
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -348,6 +364,7 @@ const [pendingRating, setPendingRating] = useState(null);
       });
 
       visitedTodayRef.current.add(restaurantDetails.name); // ⬅️ add here
+      hasPrompted.current = true;
       alert('✅ Thanks for rating!');
 
     } catch (err) {
@@ -425,35 +442,35 @@ const [pendingRating, setPendingRating] = useState(null);
           <div ref={mapRef} className='rounded' style={{ height: "100%", width: "100%", border: '2px solid black' }}></div>
         </div>
         {showModal && (
-  <div className="modal d-block" tabIndex="-1">
-    <div className="modal-dialog modal-dialog-centered">
-      <div className="modal-content">
-        <div className="modal-header">
-          <h5 className="modal-title">Rate {restaurantDetails?.name}</h5>
-          <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
-        </div>
-        <div className="modal-body text-center">
-          <p>How would you rate this place?</p>
-          {[1, 2, 3, 4, 5].map((num) => (
-            <button
-              key={num}
-              className={`btn m-1 ${pendingRating === num ? 'btn-primary' : 'btn-outline-secondary'}`}
-              onClick={() => setPendingRating(num)}
-            >
-              {num} ⭐
-            </button>
-          ))}
-        </div>
-        <div className="modal-footer">
-          <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-          <button className="btn btn-success" onClick={handleRatingSubmit} disabled={!pendingRating}>
-            Submit
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-)}
+          <div className="modal d-block" tabIndex="-1">
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Rate {restaurantDetails?.name}</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+                </div>
+                <div className="modal-body text-center">
+                  <p>How would you rate this place?</p>
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      className={`btn m-1 ${pendingRating === num ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => setPendingRating(num)}
+                    >
+                      {num} ⭐
+                    </button>
+                  ))}
+                </div>
+                <div className="modal-footer">
+                  <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+                  <button className="btn btn-success" onClick={handleRatingSubmit} disabled={!pendingRating}>
+                    Submit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
