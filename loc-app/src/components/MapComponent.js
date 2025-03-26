@@ -22,7 +22,7 @@ const MapComponent = () => {
   const infowindowRef = useRef(null);
   const [routeSummary, setRouteSummary] = useState(null);
   const [restaurantDetails, setRestaurantDetails] = useState(null);
-  const [user, setUser] = useState(null); 
+  const [user, setUser] = useState(null);
   const userMarkerRef = useRef(null);
   const destinationMarkerRef = useRef(null);
   const hasPrompted = useRef(false);
@@ -34,6 +34,8 @@ const MapComponent = () => {
 
   const goToHome = () => navigate('/');
   const goToProfile = () => navigate('/profile');
+
+  const visitedTodayRef = useRef(new Set());
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -49,12 +51,13 @@ const MapComponent = () => {
 
     if (location.state?.destination) {
       destinationRef.current = location.state.destination;
-      setRestaurantDetails(location.state.meta || {
+      setRestaurantDetails(location.state?.meta ?? {
         name: 'Unknown',
         address: 'Unknown',
         rating: 'N/A',
         cuisine: 'Unknown'
       });
+      
       getLocation();
     }
     else {
@@ -152,11 +155,16 @@ const MapComponent = () => {
     );
   };
 
+
   const checkIfVisitedToday = async () => {
     if (!user || !restaurantDetails?.name) return false;
 
+    if (visitedTodayRef.current.has(restaurantDetails.name)) {
+      return true;
+    }
+
     const visitsRef = collection(db, `visitHistory/${user.uid}/visits`);
-    const snapshot = await getDocs(visitsRef);
+    const snapshot = await getDocs(visitsRef, { source: 'server' }); // 👈 Force fetch from server
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -167,7 +175,10 @@ const MapComponent = () => {
       const visitDate = ts || new Date(data.timestamp);
       visitDate.setHours(0, 0, 0, 0);
 
-      if (visitDate.getTime() === today.getTime() && data.placeName === restaurantDetails.name) {
+      if (
+        visitDate.getTime() === today.getTime() &&
+        data.placeName === restaurantDetails.name
+      ) {
         return true;
       }
     }
@@ -239,11 +250,18 @@ const MapComponent = () => {
   };
 
   const startProximityWatcher = () => {
+    
     const watchId = navigator.geolocation.watchPosition((pos) => {
       const userPos = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
       const destPos = new window.google.maps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
       const distance = window.google.maps.geometry.spherical.computeDistanceBetween(userPos, destPos);
-
+      console.log("📍 Proximity detected. Details:", {
+        distance,
+        restaurantDetails,
+        destination: destinationRef.current,
+        userLocation: userPos.toJSON()
+      });
+      
       if (distance < 100 && !hasPrompted.current) {
         hasPrompted.current = true;
 
@@ -261,16 +279,34 @@ const MapComponent = () => {
 
     });
   };
+  const [showModal, setShowModal] = useState(false);
+const [pendingRating, setPendingRating] = useState(null);
 
   const showRatingPrompt = () => {
+    if (!restaurantDetails || !restaurantDetails.name) {
+      console.warn("🚫 Can't show rating prompt: restaurant details are missing.");
+      return;
+    }
+  
+    setShowModal(true); // show modal instead of prompt
+  
     console.log("📍 Attempting to prompt for rating. Restaurant:", restaurantDetails);
-    const rating = prompt("You've arrived! How would you rate this place? (1–5)");
-    const parsed = parseInt(rating);
-    if (parsed >= 1 && parsed <= 5) {
-      submitRating(parsed);
+    // const rating = prompt("You've arrived! How would you rate this place? (1–5)");
+    // const parsed = parseInt(rating);
+    // if (parsed >= 1 && parsed <= 5) {
+    //   submitRating(parsed);
+    //   visitedTodayRef.current.add(restaurantDetails.name);
+    // }
+  };
+  const handleRatingSubmit = () => {
+    if (pendingRating >= 1 && pendingRating <= 5) {
+      submitRating(pendingRating);
+      visitedTodayRef.current.add(restaurantDetails.name);
+      setShowModal(false);
+      setPendingRating(null);
     }
   };
-
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -281,10 +317,10 @@ const MapComponent = () => {
         console.warn("🚫 No authenticated user.");
       }
     });
-  
+
     return () => unsubscribe();
   }, []);
-  
+
 
   const submitRating = async (rating) => {
     if (!user) {
@@ -310,7 +346,10 @@ const MapComponent = () => {
         rating,
         timestamp: now
       });
+
+      visitedTodayRef.current.add(restaurantDetails.name); // ⬅️ add here
       alert('✅ Thanks for rating!');
+
     } catch (err) {
       console.error("🔥 Firestore write failed:", err.message);
     }
@@ -385,6 +424,37 @@ const MapComponent = () => {
         <div className="col-md-8 position-relative">
           <div ref={mapRef} className='rounded' style={{ height: "100%", width: "100%", border: '2px solid black' }}></div>
         </div>
+        {showModal && (
+  <div className="modal d-block" tabIndex="-1">
+    <div className="modal-dialog modal-dialog-centered">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h5 className="modal-title">Rate {restaurantDetails?.name}</h5>
+          <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
+        </div>
+        <div className="modal-body text-center">
+          <p>How would you rate this place?</p>
+          {[1, 2, 3, 4, 5].map((num) => (
+            <button
+              key={num}
+              className={`btn m-1 ${pendingRating === num ? 'btn-primary' : 'btn-outline-secondary'}`}
+              onClick={() => setPendingRating(num)}
+            >
+              {num} ⭐
+            </button>
+          ))}
+        </div>
+        <div className="modal-footer">
+          <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
+          <button className="btn btn-success" onClick={handleRatingSubmit} disabled={!pendingRating}>
+            Submit
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
       </div>
     </div>
   );
