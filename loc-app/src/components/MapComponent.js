@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import './stylesheets/style.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';

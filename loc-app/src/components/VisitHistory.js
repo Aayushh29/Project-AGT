@@ -4,7 +4,6 @@ import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './stylesheets/style.css';
 
 import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';

@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react';
-import './stylesheets/style.css';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import back from '../assets/back.png';
