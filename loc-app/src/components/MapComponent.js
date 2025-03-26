@@ -87,10 +87,10 @@ const MapComponent = () => {
         latLngRef.current = coords;
         initMap(coords, searchNearest);
       },
-      () => 
-      //   alert("Geolocation failed."),
-      // { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-      console.log("Geolocation failed")
+      () =>
+        //   alert("Geolocation failed."),
+        // { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
+        console.log("Geolocation failed")
     );
   };
 
@@ -235,9 +235,9 @@ const MapComponent = () => {
 
   const showRatingPrompt = () => {
     if (!restaurantDetails || !restaurantDetails.name) return;
-    setShowModal(true);
+    setShowModal(true); // Show modal only when user is close
   };
-
+  
   const handleRatingSubmit = () => {
     if (pendingRating >= 1 && pendingRating <= 5) {
       submitRating(pendingRating);
@@ -325,7 +325,7 @@ const MapComponent = () => {
         </div>
 
         {showModal && (
-          <div className="modal d-block" tabIndex="-1">
+          <div className="modal d-block" tabIndex="-1" role="dialog" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
             <div className="modal-dialog modal-dialog-centered">
               <div className="modal-content">
                 <div className="modal-header">
@@ -346,12 +346,19 @@ const MapComponent = () => {
                 </div>
                 <div className="modal-footer">
                   <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-                  <button className="btn btn-success" onClick={handleRatingSubmit} disabled={!pendingRating}>Submit</button>
+                  <button
+                    className="btn btn-success"
+                    onClick={handleRatingSubmit}
+                    disabled={!pendingRating}
+                  >
+                    Submit
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         )}
+
       </div>
     </div>
   );
