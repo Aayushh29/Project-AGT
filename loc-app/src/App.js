@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import locationImg from './assets/location.png';
 import profileImg from './assets/profile.png';
-import { auth } from './firebaseconfig'; // adjust path if needed
+import { auth } from './firebaseconfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import locImg from './assets/location.png';
 import restImg from './assets/restaurant.png';
 import locHistImg from './assets/location-history.png';
+import { useLocation } from 'react-router-dom';
 
 function App() {
   const navigate = useNavigate();
@@ -36,9 +37,9 @@ function App() {
 
   return (
     <div className="container text-center">
-      {/* Top Bar */}
+
       <div className="container text-center">
-        {/* Top Bar */}
+
         <div className="row align-items-center position-relative" style={{ marginTop: '20px' }}>
 
 
@@ -51,10 +52,8 @@ function App() {
           </div>
         </div>
 
-        {/* Centered Cards Row */}
         <div className="d-flex justify-content-center mt-5">
           <div className="row" style={{ maxWidth: '1000px' }}>
-            {/* Card 1 */}
             <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToMap} style={{ cursor: 'pinter' }}>
               <div className='card' style={{ width: '20rem', height: '25rem', cursor: 'pointer' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
@@ -64,7 +63,6 @@ function App() {
               </div>
             </div>
 
-            {/* Card 2 */}
             <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToNearByRestaurantsList} style={{ cursor: 'pointer' }} >
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>
@@ -74,7 +72,6 @@ function App() {
               </div>
             </div>
 
-            {/* Card 3 */}
             <div className='col-md-4 d-flex justify-content-center mb-4' onClick={goToHistory} style={{ cursor: 'pointer' }}>
               <div className='card' style={{ width: '20rem', height: '25rem' }}>
                 <div className='card-body d-flex flex-column justify-content-center align-items-center'>

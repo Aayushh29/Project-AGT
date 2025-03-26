@@ -19,7 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import logoutImg from '../assets/logout.png';
 import back from '../assets/back.png';
-import bcrypt from 'bcryptjs'; // At the top
+import bcrypt from 'bcryptjs';
 import cuisinesData from './cuisines.json';
 
 
@@ -82,17 +82,14 @@ function Profile() {
     if (!user || !userDetails) return;
 
     try {
-      // Firestore references
       const userRef = doc(db, "userDetails", user.uid);
       const passwordHistoryCollection = collection(db, "oldPasswords", user.uid, "history");
 
-      // 1. Update Firestore profile      
       if (selectedCuisines.length !== 5) {
         alert("Please select exactly 5 favorite cuisines.");
         return;
       }
 
-      // 1. Update Firestore profile
       await updateDoc(userRef, {
         name: userDetails.name,
         dob: userDetails.dob,
@@ -100,22 +97,17 @@ function Profile() {
         city: userDetails.city,
         contact: userDetails.contact,
         cuisines: selectedCuisines,
-        priceLevel: userDetails.priceLevel // added here
+        priceLevel: userDetails.priceLevel
       });
       
-
-
-      // 2. Update display name
       await updateProfile(user, {
         displayName: userDetails.name
       });
 
-      // 3. Check new password (if any)
       if (newPassword.length >= 6) {
         const querySnapshot = await getDocs(passwordHistoryCollection);
         const oldHashes = querySnapshot.docs.map(doc => doc.data().hash);
 
-        // SAFER: Check each hash one-by-one
         for (let hash of oldHashes) {
           const match = await bcrypt.compare(newPassword, hash);
           if (match) {
@@ -124,10 +116,8 @@ function Profile() {
           }
         }
 
-        // Update password in Firebase Auth
         await updatePassword(user, newPassword);
 
-        // Save new hash with timestamp
         const newHash = await bcrypt.hash(newPassword, 10);
         await addDoc(passwordHistoryCollection, {
           hash: newHash,
@@ -160,7 +150,6 @@ function Profile() {
 
   return (
     <div className="container text-center">
-      {/* Top Bar */}
       <div className="row align-items-center position-relative">
         <div className="col-auto" style={{ cursor: 'pointer' }} onClick={goToHome}>
           <img src={back} style={{ width: '2rem', height: '2rem', margin: '10px' }} alt="Back" />

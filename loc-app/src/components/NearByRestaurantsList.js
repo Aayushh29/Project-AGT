@@ -12,7 +12,7 @@ const NearByRestaurantsList = () => {
       sessionStorage.setItem('hasReloadedNearbyList', 'true');
       window.location.reload();
     } else {
-      sessionStorage.removeItem('hasReloadedNearbyList'); // Clean up for next time
+      sessionStorage.removeItem('hasReloadedNearbyList'); 
     }
   }, []);
 

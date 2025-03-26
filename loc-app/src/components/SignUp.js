@@ -21,7 +21,7 @@ function Signup() {
     gender: '',
     city: '',
     contact: '',
-    priceLevel: '' // added field
+    priceLevel: '' 
   });
 
   const navigate = useNavigate();
@@ -38,13 +38,11 @@ function Signup() {
     e.preventDefault();
     const { name, email, password, confirmPassword, dob, gender, city, contact } = signupData;
 
-    // Check for empty fields
     if (!name || !email || !password || !confirmPassword || !dob || !gender || !city || !contact) {
       alert("Please fill in all fields.");
       return;
     }
 
-    // Password match check
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
       return;
@@ -54,7 +52,6 @@ function Signup() {
       return;
     }
 
-    // Cuisine selection check
     if (selectedCuisines.length !== 5) {
       alert("Please select exactly 5 favorite cuisines.");
       return;
@@ -76,7 +73,7 @@ function Signup() {
         city,
         contact,
         cuisines: selectedCuisines,
-        priceLevel: signupData.priceLevel, // added here
+        priceLevel: signupData.priceLevel, 
         createdAt: new Date()
       });
 
@@ -93,7 +90,6 @@ function Signup() {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
-      // Save basic info in Firestore (you can ask for other fields later)
       const userDocRef = doc(db, "userDetails", user.uid);
       await setDoc(userDocRef, {
         name: user.displayName || '',

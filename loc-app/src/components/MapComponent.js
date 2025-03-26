@@ -78,9 +78,8 @@ const MapComponent = () => {
       getDirections(destinationRef.current.lat, destinationRef.current.lng);
       startProximityWatcher();
     }
-  }, [googleReady, latLngRef.current, destinationRef.current, restaurantDetails, user]);
+  }, [googleReady, routeType, restaurantDetails, user]);
   
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser ?? null);
@@ -102,7 +101,6 @@ const MapComponent = () => {
         if (onlyCenter && mapRefObject.current) {
           mapRefObject.current.setCenter(coords);
   
-          // Create or move marker
           if (!userMarkerRef.current) {
             userMarkerRef.current = new gmaps.Marker({
               position: coords,
@@ -117,7 +115,6 @@ const MapComponent = () => {
             userMarkerRef.current.setPosition(coords);
           }
   
-          // Create or update infowindow
           if (!infowindowRef.current) {
             infowindowRef.current = new gmaps.InfoWindow({
               content: "You are here!"
@@ -131,12 +128,10 @@ const MapComponent = () => {
           return;
         }
   
-        // Fall back to full init if onlyCenter is false
         initMap(coords, searchNearest);
       },
       (error) => {
         console.error("Geolocation error:", error.message);
-        // alert("Failed to get your location. Make sure location is enabled.");
       },
       {
         enableHighAccuracy: true,
@@ -298,7 +293,7 @@ const MapComponent = () => {
 
   const showRatingPrompt = () => {
     if (!restaurantDetails || !restaurantDetails.name) return;
-    setShowModal(true); // Show modal only when user is close
+    setShowModal(true); 
   };
   
   const handleRatingSubmit = () => {
@@ -323,8 +318,8 @@ const MapComponent = () => {
       cuisine: restaurantDetails.cuisine,
       rating,
       timestamp: now,
-      lat: destinationRef.current.lat,   // ✅ Add latitude
-      lng: destinationRef.current.lng    // ✅ Add longitude
+      lat: destinationRef.current.lat,  
+      lng: destinationRef.current.lng   
     });
 
     alert('✅ Thanks for rating!');
