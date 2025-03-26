@@ -79,20 +79,67 @@ const MapComponent = () => {
     });
     return () => unsubscribe();
   }, []);
-
-  const getLocation = (searchNearest = false) => {
+  const getLocation = (searchNearest = false, onlyCenter = false) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const coords = { lat: position.coords.latitude, lng: position.coords.longitude };
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+  
         latLngRef.current = coords;
+  
+        const gmaps = window.google.maps;
+  
+        if (onlyCenter && mapRefObject.current) {
+          mapRefObject.current.setCenter(coords);
+  
+          // Create or move marker
+          if (!userMarkerRef.current) {
+            userMarkerRef.current = new gmaps.Marker({
+              position: coords,
+              map: mapRefObject.current,
+              title: "You are here",
+              icon: {
+                url: locpin,
+                scaledSize: new gmaps.Size(40, 40)
+              }
+            });
+          } else {
+            userMarkerRef.current.setPosition(coords);
+          }
+  
+          // Create or update infowindow
+          if (!infowindowRef.current) {
+            infowindowRef.current = new gmaps.InfoWindow({
+              content: "You are here!"
+            });
+          }
+  
+          infowindowRef.current.setContent("You are here!");
+          infowindowRef.current.setPosition(coords);
+          infowindowRef.current.open(mapRefObject.current, userMarkerRef.current);
+  
+          return;
+        }
+  
+        // Fall back to full init if onlyCenter is false
         initMap(coords, searchNearest);
       },
-      () =>
-        //   alert("Geolocation failed."),
-        // { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 };
-        console.log("Geolocation failed")
+      (error) => {
+        console.error("Geolocation error:", error.message);
+        // alert("Failed to get your location. Make sure location is enabled.");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
     );
   };
+  
+  
+  
 
   const initMap = (coords, searchNearest = false) => {
     const gmaps = window.google.maps;
@@ -310,7 +357,7 @@ const MapComponent = () => {
               <p><strong>Cuisine:</strong> {restaurantDetails.cuisine}</p>
               {routeSummary && <p><strong>ETA:</strong> {routeSummary}</p>}
               <hr />
-              <button className="btn btn-dark w-100 mb-2" onClick={() => getLocation(true)}>📍 Locate Me</button>
+              <button className="btn btn-dark w-100 mb-2" onClick={() => getLocation(false, true)}>📍 Locate Me</button>
               <select className="form-select mb-2" value={routeType} onChange={(e) => setRouteType(e.target.value)}>
                 <option value="DRIVING">Driving</option>
                 <option value="WALKING">Walking</option>

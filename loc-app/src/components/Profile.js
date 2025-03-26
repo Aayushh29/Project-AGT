@@ -99,8 +99,10 @@ function Profile() {
         gender: userDetails.gender,
         city: userDetails.city,
         contact: userDetails.contact,
-        cuisines: selectedCuisines
+        cuisines: selectedCuisines,
+        priceLevel: userDetails.priceLevel // added here
       });
+      
 
 
       // 2. Update display name
@@ -235,6 +237,23 @@ function Profile() {
             </select>
             <small className="text-muted">Selected {selectedCuisines.length} of 5 cuisines</small>
           </div>
+          <div className="mb-3 text-start">
+  <label className="form-label text-dark">Preferred Price Level</label>
+  <select
+    name="priceLevel"
+    value={userDetails.priceLevel || ''}
+    onChange={handleChange}
+    className="form-select border-dark text-dark bg-light"
+  >
+    <option value="">Select Price Level</option>
+    <option value="0">$ (Cheapest)</option>
+    <option value="1">$$</option>
+    <option value="2">$$$</option>
+    <option value="3">$$$$</option>
+    <option value="4">$$$$$ (Most Expensive)</option>
+  </select>
+</div>
+
 
           <div className="mb-3 text-start">
             <label className="form-label text-dark">New Password</label>

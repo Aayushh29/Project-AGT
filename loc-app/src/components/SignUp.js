@@ -20,7 +20,8 @@ function Signup() {
     dob: '',
     gender: '',
     city: '',
-    contact: ''
+    contact: '',
+    priceLevel: '' // added field
   });
 
   const navigate = useNavigate();
@@ -42,10 +43,14 @@ function Signup() {
       alert("Please fill in all fields.");
       return;
     }
-    
+
     // Password match check
     if (password !== confirmPassword) {
       alert("Passwords do not match!");
+      return;
+    }
+    if (signupData.priceLevel === '') {
+      alert("Please select a price level.");
       return;
     }
 
@@ -54,7 +59,7 @@ function Signup() {
       alert("Please select exactly 5 favorite cuisines.");
       return;
     }
-    if(contact.length != 10){
+    if (contact.length != 10) {
       alert("Please enter a valid contact number");
       return;
     }
@@ -71,6 +76,7 @@ function Signup() {
         city,
         contact,
         cuisines: selectedCuisines,
+        priceLevel: signupData.priceLevel, // added here
         createdAt: new Date()
       });
 
@@ -177,6 +183,23 @@ function Signup() {
               ))}
             </select>
           </div>
+          <div className="mb-3 text-start">
+            <label className="form-label text-dark">Preferred Price Level</label>
+            <select
+              name="priceLevel"
+              value={signupData.priceLevel}
+              onChange={handleChange}
+              className="form-select border-dark text-dark bg-light"
+            >
+              <option value="">Select Price Level</option>
+              <option value="0">$ (Cheapest)</option>
+              <option value="1">$$</option>
+              <option value="2">$$$</option>
+              <option value="3">$$$$</option>
+              <option value="4">$$$$$ (Most Expensive)</option>
+            </select>
+          </div>
+
 
           <div className="d-grid mt-3">
             <button type="submit" className="btn btn-dark">Sign Up</button>
