@@ -259,7 +259,9 @@ const MapComponent = () => {
       address: restaurantDetails.address,
       cuisine: restaurantDetails.cuisine,
       rating,
-      timestamp: now
+      timestamp: now,
+      lat: destinationRef.current.lat,   // ✅ Add latitude
+      lng: destinationRef.current.lng    // ✅ Add longitude
     });
 
     alert('✅ Thanks for rating!');

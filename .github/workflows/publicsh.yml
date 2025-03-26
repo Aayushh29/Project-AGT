@@ -3,7 +3,7 @@ name: Deploy React App from loc-app to GitHub Pages
 on:
   push:
     branches:
-      - main  # or "master" if your default branch is master
+      - main  # Change to "master" if that's your default branch
 
 jobs:
   deploy:
@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: loc-app  # 👈 Important: your React app path
+        working-directory: loc-app  # 👈 Your React app lives in loc-app/
 
     steps:
       - name: 📥 Checkout repo
@@ -32,4 +32,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: loc-app/build
+          publish_dir: build  # ✅ Changed from loc-app/build to just build
