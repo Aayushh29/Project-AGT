@@ -11,7 +11,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: loc-app  # 👈 Your React app lives in loc-app/
+        working-directory: loc-app  
 
     steps:
       - name: 📥 Checkout repo
@@ -24,15 +24,24 @@ jobs:
 
       - name: 🧹 Clean the build folder
         run: rm -rf build
+      
+      - name: List
+        run: ls
 
       - name: 📦 Install dependencies
         run: npm install
 
       - name: 🏗️ Build the app
         run: CI='' npm run build
+      
+      - name: List
+        run: ls
 
       - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: loc-app/build  
+      
+      - name: List 2
+        run: ls
