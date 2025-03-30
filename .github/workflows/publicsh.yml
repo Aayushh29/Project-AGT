@@ -3,15 +3,11 @@ name: Deploy React App from loc-app to GitHub Pages
 on:
   push:
     branches:
-      - main  # Change to "master" if that's your default branch
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: loc-app  
 
     steps:
       - name: 📥 Checkout repo
@@ -22,21 +18,16 @@ jobs:
         with:
           node-version: '18'
 
-      - name: 🧹 Clean the build folder
-        run: rm -rf build        
-
       - name: 📦 Install dependencies
         run: npm install
+        working-directory: loc-app
 
       - name: 🏗️ Build the app
         run: CI='' npm run build
-      
-      - name: List
-        run: ls
+        working-directory: loc-app
 
       - name: 🚀 Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build/
-    
+          publish_dir: loc-app/build
