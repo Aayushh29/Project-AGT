@@ -1,21 +1,21 @@
 {
   "files": {
-    "main.css": "/Project-AGT/static/css/main.d221dc40.css",
-    "main.js": "/Project-AGT/static/js/main.00a9852e.js",
-    "static/media/restaurant.png": "/Project-AGT/static/media/restaurant.68a909e558d9dbaa69ba.png",
-    "static/media/destination-pin.png": "/Project-AGT/static/media/destination-pin.dae391afa5b90605e688.png",
-    "static/media/profile.png": "/Project-AGT/static/media/profile.152e4568193822add118.png",
-    "static/media/location-history.png": "/Project-AGT/static/media/location-history.7722d7fff9b351075dd9.png",
-    "static/media/location-pin.png": "/Project-AGT/static/media/location-pin.abf0fdd58616d801b5c9.png",
-    "static/media/logout.png": "/Project-AGT/static/media/logout.131aa7f594ee4362b771.png",
-    "static/media/location.png": "/Project-AGT/static/media/location.995995d4945dbfb4b96c.png",
-    "static/media/back.png": "/Project-AGT/static/media/back.d4860b4329b8b48afd40.png",
-    "index.html": "/Project-AGT/index.html",
-    "main.d221dc40.css.map": "/Project-AGT/static/css/main.d221dc40.css.map",
-    "main.00a9852e.js.map": "/Project-AGT/static/js/main.00a9852e.js.map"
+    "main.css": "/static/css/main.d221dc40.css",
+    "main.js": "/static/js/main.d2c2c054.js",
+    "static/media/restaurant.png": "/static/media/restaurant.68a909e558d9dbaa69ba.png",
+    "static/media/destination-pin.png": "/static/media/destination-pin.dae391afa5b90605e688.png",
+    "static/media/profile.png": "/static/media/profile.152e4568193822add118.png",
+    "static/media/location-history.png": "/static/media/location-history.7722d7fff9b351075dd9.png",
+    "static/media/location-pin.png": "/static/media/location-pin.abf0fdd58616d801b5c9.png",
+    "static/media/logout.png": "/static/media/logout.131aa7f594ee4362b771.png",
+    "static/media/location.png": "/static/media/location.995995d4945dbfb4b96c.png",
+    "static/media/back.png": "/static/media/back.d4860b4329b8b48afd40.png",
+    "index.html": "/index.html",
+    "main.d221dc40.css.map": "/static/css/main.d221dc40.css.map",
+    "main.d2c2c054.js.map": "/static/js/main.d2c2c054.js.map"
   },
   "entrypoints": [
     "static/css/main.d221dc40.css",
-    "static/js/main.00a9852e.js"
+    "static/js/main.d2c2c054.js"
   ]
 }
