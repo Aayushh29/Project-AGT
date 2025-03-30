@@ -1,20 +1,18 @@
 // src/index.js
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { HashRouter, Routes, Route } from 'react-router-dom';
 import App from './App';
 import MapComponent from './components/MapComponent';
 import Profile from './components/Profile';
 import Signup from './components/SignUp';
 import Login from './components/Login';
-import PrivateRoute from './components/PrivateRoute';
 import NearbyRestaurantsList from './components/NearByRestaurantsList';
 import VisitHistory from './components/VisitHistory';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-
-  <BrowserRouter basename="/Project-AGT">
+  <HashRouter>
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/map" element={<MapComponent />} />
@@ -23,14 +21,7 @@ root.render(
       <Route path="/login" element={<Login />} />
       <Route path="/history" element={<VisitHistory />} />
       <Route path="/nearbyrestaurantslist" element={<NearbyRestaurantsList />} />
-      {/* <Route
-          path="/profile"
-          element={
-            <PrivateRoute>
-              <Profile />
-            </PrivateRoute>
-          }
-        /> */}
     </Routes>
-  </BrowserRouter>
+  </HashRouter>
+
 );
