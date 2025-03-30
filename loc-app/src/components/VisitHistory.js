@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 import back from '../assets/back.png';
 import profileImg from '../assets/profile.png';
-import { useLocation } from 'react-router-dom';
 
 const VisitHistory = () => {
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState(null);
-
+  const [selectedVisit, setSelectedVisit] = useState(null); // ✅ for centering map
   const auth = getAuth();
   const db = getFirestore();
   const navigate = useNavigate();
@@ -24,6 +23,7 @@ const VisitHistory = () => {
 
   const goToHome = () => navigate('/');
   const goToProfile = () => navigate('/profile');
+
   useEffect(() => {
     const fetchVisitHistory = async () => {
       const user = auth.currentUser;
@@ -64,7 +64,19 @@ const VisitHistory = () => {
     };
 
     fetchVisitHistory();
-  }, []); // ✅ empty dependency to run only on mount
+  }, []);
+
+  const handleRatingChange = async (visitId, newRating) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const visitRef = doc(db, `visitHistory/${user.uid}/visits/${visitId}`);
+    await updateDoc(visitRef, { rating: newRating });
+
+    setVisits((prev) =>
+      prev.map((v) => (v.id === visitId ? { ...v, rating: newRating } : v))
+    );
+  };
 
   return (
     <div className="container-fluid text-center">
@@ -94,38 +106,64 @@ const VisitHistory = () => {
           ) : (
             <div className="list-group" style={{ border: '2px solid black' }}>
               {visits.map((visit) => (
-                <div key={visit.id} className="list-group-item">
+                <div
+                  key={visit.id}
+                  className="list-group-item"
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => setSelectedVisit(visit)}
+                >
                   <h6 className="mb-1">{visit.placeName}</h6>
                   <p className="mb-1 text-muted">{visit.address}</p>
-                  <small className="text-muted d-block">
-                    ⭐ {visit.rating} • {visit.cuisine} • {visit.timestamp}
-                  </small>
+                  <div className="d-flex align-items-center justify-content-between">
+                    <small className="text-muted">
+                      {visit.rating === 1 ? 'Liked' : visit.rating === 0 ? 'Disliked' : 'No rating'} • {visit.cuisine} • {visit.timestamp}
+                    </small>
+
+                    <div className="btn-group" role="group">
+                      <button
+                        className={`btn btn-sm ${visit.rating === 1 ? 'btn-success' : 'btn-outline-success'}`}
+                        onClick={() => handleRatingChange(visit.id, 1)}
+                      >
+                        👍
+                      </button>
+                      <button
+                        className={`btn btn-sm ${visit.rating === 0 ? 'btn-danger' : 'btn-outline-danger'}`}
+                        onClick={() => handleRatingChange(visit.id, 0)}
+                      >
+                        👎
+                      </button>
+                    </div>
+
+                  </div>
+
                   {visit.allCuisines && visit.allCuisines.length > 0 && (
-                    <div className="mt-1">
+                    <div className="mt-2">
                       <strong className="d-block">Cuisines:</strong>
                       <div className="d-flex flex-wrap gap-1">
-                        {/* <p className="mt-1 mb-0">
-                          <strong>Cuisines:</strong> {visit.allCuisines.join(', ')}
-                        </p> */}
-
                         {visit.allCuisines.map((cuisine, i) => (
-                          <span key={i} className="badge bg-dark">{cuisine}</span>
+                          <span key={i} className="badge bg-dark">
+                            {cuisine}
+                          </span>
                         ))}
                       </div>
                     </div>
                   )}
-
                 </div>
               ))}
             </div>
           )}
         </div>
+
         <div className="col-md-8 p-0" style={{ border: '2px solid black' }}>
           {googleReady && userLocation && (
             <GoogleMap
               mapContainerStyle={{ width: '100%', height: '100%' }}
-              center={userLocation}
-              zoom={13}
+              center={
+                selectedVisit
+                  ? { lat: selectedVisit.lat, lng: selectedVisit.lng }
+                  : userLocation
+              }
+              zoom={selectedVisit ? 16 : 13}
             >
               <Marker
                 position={userLocation}

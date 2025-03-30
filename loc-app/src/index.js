@@ -13,7 +13,8 @@ import VisitHistory from './components/VisitHistory';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <BrowserRouter>
+
+  <BrowserRouter basename="/Project-AGT">
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/map" element={<MapComponent />} />

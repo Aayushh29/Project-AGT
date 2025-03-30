@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import locationImg from './assets/location.png';
 import profileImg from './assets/profile.png';
 import { auth } from './firebaseconfig';
 import { onAuthStateChanged } from 'firebase/auth';
 import locImg from './assets/location.png';
 import restImg from './assets/restaurant.png';
 import locHistImg from './assets/location-history.png';
-import { useLocation } from 'react-router-dom';
 
 function App() {
   const navigate = useNavigate();
@@ -36,6 +34,7 @@ function App() {
   }
 
   return (
+    
     <div className="container text-center">
 
       <div className="container text-center">

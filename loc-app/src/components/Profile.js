@@ -30,6 +30,8 @@ function Profile() {
   const [userDetails, setUserDetails] = useState(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [error, setError] = useState('');
+
   const navigate = useNavigate();
 
   const goToHome = () => navigate('/');
@@ -40,30 +42,30 @@ function Profile() {
         navigate('/login');
         return;
       }
-
+  
       try {
-
         const docRef = doc(db, "userDetails", currentUser.uid);
         const docSnap = await getDoc(docRef);
+  
         if (docSnap.exists()) {
           const data = docSnap.data();
           setUserDetails(data);
           setSelectedCuisines(data.cuisines || []);
-        }
-        else {
-          console.warn("User profile document missing");
+        } else {
+          setError("⚠️ User profile information is missing.");
         }
       } catch (error) {
         console.error("Error loading profile:", error.message);
+        setError("❌ Failed to load profile. Please try again later.");
       }
-
+  
       setAuthChecked(true);
     });
-
+  
     return () => unsubscribe();
   }, [navigate]);
 
-
+  
   const handleChange = (e) => {
     setUserDetails({ ...userDetails, [e.target.name]: e.target.value });
   };
@@ -91,13 +93,13 @@ function Profile() {
       }
 
       await updateDoc(userRef, {
-        name: userDetails.name,
-        dob: userDetails.dob,
-        gender: userDetails.gender,
-        city: userDetails.city,
-        contact: userDetails.contact,
+        name: userDetails.name || '',
+        dob: userDetails.dob || '',
+        gender: userDetails.gender || '',
+        city: userDetails.city || '',
+        contact: userDetails.contact || '',
         cuisines: selectedCuisines,
-        priceLevel: userDetails.priceLevel
+        priceLevel: userDetails.priceLevel ?? ''
       });
       
       await updateProfile(user, {
@@ -144,10 +146,10 @@ function Profile() {
     }
   };
 
-  if (!authChecked) return <div className="text-center mt-5">Checking authentication...</div>;
-  if (!userDetails) return <div className="text-center mt-5">Loading profile info...</div>;
-
-
+  if (!authChecked) return <div className="text-center mt-5">🔐 Checking authentication...</div>;
+  if (error) return <div className="text-center mt-5 text-danger">{error}</div>;
+  if (!userDetails) return <div className="text-center mt-5">⏳ Loading profile info...</div>;
+  
   return (
     <div className="container text-center">
       <div className="row align-items-center position-relative">
