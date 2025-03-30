@@ -182,7 +182,9 @@ const MapComponent = () => {
 
   const fetchCuisineFromFoursquare = async (lat, lng) => {
     try {
-      const res = await fetch(`http://localhost:5003/api/foursquare/cuisine?lat=${lat}&lng=${lng}`);
+      const FOURSQUARE_SERVER = process.env.REACT_APP_FOURSQUARE_SERVER_URL || 'http://localhost:5003';
+ 
+      const res = await fetch(`${FOURSQUARE_SERVER}/api/foursquare/cuisine?lat=${lat}&lng=${lng}`);
       const data = await res.json();
       return data.cuisine || "Unknown Cuisine";
     } catch (err) {
