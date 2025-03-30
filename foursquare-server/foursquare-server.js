@@ -1,3 +1,7 @@
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
+
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
