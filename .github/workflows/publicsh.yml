@@ -32,4 +32,4 @@ jobs:
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: build  # ✅ Changed from loc-app/build to just build
+          publish_dir: loc-app/build  # ✅ Correct path now

@@ -37,7 +37,7 @@ const MapComponent = () => {
   const goToHome = () => navigate('/');
   const goToProfile = () => navigate('/profile');
 
-  useEffect(() => {    
+  useEffect(() => {
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places,geometry`;
     script.async = true;
@@ -109,13 +109,13 @@ const MapComponent = () => {
       mapRefObject.current &&
       destinationRef.current &&
       restaurantDetails;
-  
+
     if (!ready) return;
-  
+
     getDirections(destinationRef.current.lat, destinationRef.current.lng);
   }, [googleReady, restaurantDetails, routeType]);
 
-  
+
   useEffect(() => {
     console.log("✅ restaurantDetails ready:", restaurantDetails);
   }, [restaurantDetails]);
@@ -346,7 +346,7 @@ const MapComponent = () => {
   };
 
   const handleRatingSubmit = () => {
-    if (pendingRating >= 1 && pendingRating <= 5) {
+    if (pendingRating === 1 || pendingRating === 0) {
       submitRating(pendingRating);
       visitedTodayRef.current.add(restaurantDetails.name);
       setShowModal(false);
@@ -443,23 +443,26 @@ const MapComponent = () => {
                   <button type="button" className="btn-close" onClick={() => setShowModal(false)}></button>
                 </div>
                 <div className="modal-body text-center">
-                  <p>How would you rate this place?</p>
-                  {[1, 2, 3, 4, 5].map((num) => (
-                    <button
-                      key={num}
-                      className={`btn m-1 ${pendingRating === num ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => setPendingRating(num)}
-                    >
-                      {num} ⭐
-                    </button>
-                  ))}
+                  <p>Did you enjoy this place?</p>
+                  <button
+                    className={`btn btn-lg m-2 ${pendingRating === 1 ? 'btn-success' : 'btn-outline-success'}`}
+                    onClick={() => setPendingRating(1)}
+                  >
+                    👍
+                  </button>
+                  <button
+                    className={`btn btn-lg m-2 ${pendingRating === 0 ? 'btn-danger' : 'btn-outline-danger'}`}
+                    onClick={() => setPendingRating(0)}
+                  >
+                    👎
+                  </button>
                 </div>
+
                 <div className="modal-footer">
                   <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
                   <button
                     className="btn btn-success"
                     onClick={handleRatingSubmit}
-                    disabled={!pendingRating}
                   >
                     Submit
                   </button>

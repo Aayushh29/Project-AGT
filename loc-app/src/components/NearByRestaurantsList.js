@@ -77,14 +77,12 @@ const NearByRestaurantsList = () => {
   };
 
   const fetchNearby = async (coords) => {
-
     setLoading(true);
-
-
+  
     const gmaps = window.google.maps;
     const map = new gmaps.Map(document.createElement("div"));
     const service = new gmaps.places.PlacesService(map);
-
+  
     service.nearbySearch(
       {
         location: coords,
@@ -94,16 +92,16 @@ const NearByRestaurantsList = () => {
       async (results, status) => {
         if (status !== gmaps.places.PlacesServiceStatus.OK || !results) {
           alert("No nearby restaurants found.");
-          setVisiblePlaces([]);
+          setVisiblePlaces([]); // ✅ Restore this
           setLoading(false);
           return;
         }
-
+  
         const origin = new gmaps.LatLng(coords.lat, coords.lng);
-
+  
         const placePromises = results.map(async place => {
           if (!place.geometry?.location || place.rating < minRating) return null;
-
+  
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
           const distanceMeters = gmaps.geometry.spherical.computeDistanceBetween(
@@ -111,7 +109,7 @@ const NearByRestaurantsList = () => {
             place.geometry.location
           );
           const photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 100 }) || "https://via.placeholder.com/100";
-
+  
           // Fetch cuisine from Foursquare
           let cuisine = "Unknown Cuisine";
           try {
@@ -121,7 +119,7 @@ const NearByRestaurantsList = () => {
           } catch (e) {
             console.warn("Cuisine fetch failed for:", place.name);
           }
-
+  
           return {
             name: place.name,
             address: place.vicinity,
@@ -132,15 +130,14 @@ const NearByRestaurantsList = () => {
             position: { lat, lng }
           };
         });
-
+  
         const resolvedPlaces = (await Promise.all(placePromises)).filter(Boolean);
         setVisiblePlaces(resolvedPlaces);
+        setLoading(false); // ✅ ✅ ✅ THIS WAS MISSING
       }
-
     );
-
   };
-
+  
   return (
     <div className="container text-center">
       <div className="row align-items-center position-relative">
@@ -180,7 +177,15 @@ const NearByRestaurantsList = () => {
       </div>
 
       <div className="container mt-4" style={{ maxWidth: '700px' }}>
-        <h4 className="mb-3 text-start">Restaurants Found: {loading ? 'Loading...' : visiblePlaces.length}</h4>
+      <h4 className="mb-3 text-start">
+  Restaurants Found:{" "}
+  {loading ? (
+    <span className="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+  ) : (
+    <strong>{visiblePlaces.length}</strong>
+  )}
+</h4>
+
         <div className="list-group">
           {visiblePlaces.map((place, index) => (
             <div
