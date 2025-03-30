@@ -12,7 +12,7 @@ import VisitHistory from './components/VisitHistory';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <HashRouter basename="/Project-AGT">
+  <HashRouter>
     <Routes>
       <Route path="/" element={<App />} />
       <Route path="/map" element={<MapComponent />} />
