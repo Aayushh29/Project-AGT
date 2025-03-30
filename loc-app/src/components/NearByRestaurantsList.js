@@ -78,11 +78,11 @@ const NearByRestaurantsList = () => {
 
   const fetchNearby = async (coords) => {
     setLoading(true);
-  
+
     const gmaps = window.google.maps;
     const map = new gmaps.Map(document.createElement("div"));
     const service = new gmaps.places.PlacesService(map);
-  
+
     service.nearbySearch(
       {
         location: coords,
@@ -96,12 +96,12 @@ const NearByRestaurantsList = () => {
           setLoading(false);
           return;
         }
-  
+
         const origin = new gmaps.LatLng(coords.lat, coords.lng);
-  
+
         const placePromises = results.map(async place => {
           if (!place.geometry?.location || place.rating < minRating) return null;
-  
+
           const lat = place.geometry.location.lat();
           const lng = place.geometry.location.lng();
           const distanceMeters = gmaps.geometry.spherical.computeDistanceBetween(
@@ -109,17 +109,20 @@ const NearByRestaurantsList = () => {
             place.geometry.location
           );
           const photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 100 }) || "https://via.placeholder.com/100";
-  
+
           // Fetch cuisine from Foursquare
           let cuisine = "Unknown Cuisine";
           try {
-            const res = await fetch(`http://localhost:5003/api/foursquare/cuisine?lat=${lat}&lng=${lng}`);
+            const FOURSQUARE_SERVER = process.env.REACT_APP_FOURSQUARE_SERVER_URL || 'http://localhost:5003';
+
+            const res = await fetch(`${FOURSQUARE_SERVER}/api/foursquare/cuisine?lat=${lat}&lng=${lng}`);
             const data = await res.json();
             cuisine = data.cuisine;
           } catch (e) {
             console.warn("Cuisine fetch failed for:", place.name);
           }
-  
+
+
           return {
             name: place.name,
             address: place.vicinity,
@@ -130,14 +133,14 @@ const NearByRestaurantsList = () => {
             position: { lat, lng }
           };
         });
-  
+
         const resolvedPlaces = (await Promise.all(placePromises)).filter(Boolean);
         setVisiblePlaces(resolvedPlaces);
         setLoading(false); // ✅ ✅ ✅ THIS WAS MISSING
       }
     );
   };
-  
+
   return (
     <div className="container text-center">
       <div className="row align-items-center position-relative">
@@ -177,14 +180,14 @@ const NearByRestaurantsList = () => {
       </div>
 
       <div className="container mt-4" style={{ maxWidth: '700px' }}>
-      <h4 className="mb-3 text-start">
-  Restaurants Found:{" "}
-  {loading ? (
-    <span className="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
-  ) : (
-    <strong>{visiblePlaces.length}</strong>
-  )}
-</h4>
+        <h4 className="mb-3 text-start">
+          Restaurants Found:{" "}
+          {loading ? (
+            <span className="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></span>
+          ) : (
+            <strong>{visiblePlaces.length}</strong>
+          )}
+        </h4>
 
         <div className="list-group">
           {visiblePlaces.map((place, index) => (
