@@ -11,7 +11,7 @@ const NearByRestaurantsList = () => {
       sessionStorage.setItem('hasReloadedNearbyList', 'true');
       window.location.reload();
     } else {
-      sessionStorage.removeItem('hasReloadedNearbyList'); 
+      sessionStorage.removeItem('hasReloadedNearbyList');
     }
   }, []);
 
@@ -76,8 +76,11 @@ const NearByRestaurantsList = () => {
     );
   };
 
-  const fetchNearby = (coords) => {
+  const fetchNearby = async (coords) => {
+
     setLoading(true);
+
+
     const gmaps = window.google.maps;
     const map = new gmaps.Map(document.createElement("div"));
     const service = new gmaps.places.PlacesService(map);
@@ -88,7 +91,7 @@ const NearByRestaurantsList = () => {
         radius: radius * 1000,
         type: "restaurant"
       },
-      (results, status) => {
+      async (results, status) => {
         if (status !== gmaps.places.PlacesServiceStatus.OK || !results) {
           alert("No nearby restaurants found.");
           setVisiblePlaces([]);
@@ -98,16 +101,26 @@ const NearByRestaurantsList = () => {
 
         const origin = new gmaps.LatLng(coords.lat, coords.lng);
 
-        const places = results.map(place => {
+        const placePromises = results.map(async place => {
           if (!place.geometry?.location || place.rating < minRating) return null;
 
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
           const distanceMeters = gmaps.geometry.spherical.computeDistanceBetween(
             origin,
             place.geometry.location
           );
-
           const photoUrl = place.photos?.[0]?.getUrl({ maxWidth: 100 }) || "https://via.placeholder.com/100";
-          const cuisine = place.types?.filter(t => t.includes("restaurant") && t !== "restaurant")[0]?.replace(/_/g, ' ') || "Unknown Cuisine";
+
+          // Fetch cuisine from Foursquare
+          let cuisine = "Unknown Cuisine";
+          try {
+            const res = await fetch(`http://localhost:5003/api/foursquare/cuisine?lat=${lat}&lng=${lng}`);
+            const data = await res.json();
+            cuisine = data.cuisine;
+          } catch (e) {
+            console.warn("Cuisine fetch failed for:", place.name);
+          }
 
           return {
             name: place.name,
@@ -116,17 +129,16 @@ const NearByRestaurantsList = () => {
             distance: (distanceMeters / 1000).toFixed(2),
             photo: photoUrl,
             cuisine,
-            position: {
-              lat: place.geometry.location.lat(),
-              lng: place.geometry.location.lng()
-            }
+            position: { lat, lng }
           };
-        }).filter(Boolean);
+        });
 
-        setVisiblePlaces(places);
-        setLoading(false);
+        const resolvedPlaces = (await Promise.all(placePromises)).filter(Boolean);
+        setVisiblePlaces(resolvedPlaces);
       }
+
     );
+
   };
 
   return (

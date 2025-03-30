@@ -37,7 +37,7 @@ const MapComponent = () => {
   const goToHome = () => navigate('/');
   const goToProfile = () => navigate('/profile');
 
-  useEffect(() => {
+  useEffect(() => {    
     const script = document.createElement('script');
     script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}&libraries=places,geometry`;
     script.async = true;
@@ -55,11 +55,27 @@ const MapComponent = () => {
     if (!googleReady) return;
 
     if (location.state?.destination) {
-      destinationRef.current = location.state.destination;
-      setRestaurantDetails(location.state?.meta ?? {
-        name: 'Unknown', address: 'Unknown', rating: 'N/A', cuisine: 'Unknown'
-      });
-      getLocation();
+      if (location.state?.destination) {
+        destinationRef.current = location.state.destination;
+
+        const fetchMeta = async () => {
+          const meta = location.state.meta ?? {
+            name: 'Unknown',
+            address: 'Unknown',
+            rating: 'N/A',
+            cuisine: 'Unknown'
+          };
+          const cuisine = await fetchCuisineFromFoursquare(
+            location.state.destination.lat,
+            location.state.destination.lng
+          );
+          setRestaurantDetails({ ...meta, cuisine });
+        };
+
+        fetchMeta();
+        getLocation();
+      }
+
     } else {
       getLocation(true);
     }
@@ -78,13 +94,37 @@ const MapComponent = () => {
       startProximityWatcher();
     }
   }, [googleReady, routeType, restaurantDetails, user]);
-  
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       setUser(firebaseUser ?? null);
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const ready =
+      googleReady &&
+      latLngRef.current &&
+      mapRefObject.current &&
+      destinationRef.current &&
+      restaurantDetails;
+  
+    if (!ready) return;
+  
+    getDirections(destinationRef.current.lat, destinationRef.current.lng);
+  }, [googleReady, restaurantDetails, routeType]);
+
+  
+  useEffect(() => {
+    console.log("✅ restaurantDetails ready:", restaurantDetails);
+  }, [restaurantDetails]);
+
+  useEffect(() => {
+    console.log("📍 Drawing route with:", routeType);
+  }, [routeType]);
+
+
   const getLocation = (searchNearest = false, onlyCenter = false) => {
     navigator.geolocation.getCurrentPosition(
       (position) => {
@@ -92,14 +132,14 @@ const MapComponent = () => {
           lat: position.coords.latitude,
           lng: position.coords.longitude
         };
-  
+
         latLngRef.current = coords;
-  
+
         const gmaps = window.google.maps;
-  
+
         if (onlyCenter && mapRefObject.current) {
           mapRefObject.current.setCenter(coords);
-  
+
           if (!userMarkerRef.current) {
             userMarkerRef.current = new gmaps.Marker({
               position: coords,
@@ -113,20 +153,20 @@ const MapComponent = () => {
           } else {
             userMarkerRef.current.setPosition(coords);
           }
-  
+
           if (!infowindowRef.current) {
             infowindowRef.current = new gmaps.InfoWindow({
               content: "You are here!"
             });
           }
-  
+
           infowindowRef.current.setContent("You are here!");
           infowindowRef.current.setPosition(coords);
           infowindowRef.current.open(mapRefObject.current, userMarkerRef.current);
-  
+
           return;
         }
-  
+
         initMap(coords, searchNearest);
       },
       (error) => {
@@ -139,9 +179,17 @@ const MapComponent = () => {
       }
     );
   };
-  
-  
-  
+
+  const fetchCuisineFromFoursquare = async (lat, lng) => {
+    try {
+      const res = await fetch(`http://localhost:5003/api/foursquare/cuisine?lat=${lat}&lng=${lng}`);
+      const data = await res.json();
+      return data.cuisine || "Unknown Cuisine";
+    } catch (err) {
+      console.warn("🍽️ Failed to fetch cuisine:", err);
+      return "Unknown Cuisine";
+    }
+  };
 
   const initMap = (coords, searchNearest = false) => {
     const gmaps = window.google.maps;
@@ -171,17 +219,19 @@ const MapComponent = () => {
     const gmaps = window.google.maps;
     const service = new gmaps.places.PlacesService(mapRefObject.current);
 
-    service.nearbySearch({ location: coords, radius: 3000, type: 'restaurant' }, (results, status) => {
+    service.nearbySearch({ location: coords, radius: 3000, type: 'restaurant' }, async (results, status) => {
       if (status === gmaps.places.PlacesServiceStatus.OK && results.length > 0) {
         const nearest = results[0];
         const loc = nearest.geometry.location;
+        const cuisine = await fetchCuisineFromFoursquare(loc.lat(), loc.lng());
         const meta = {
           name: nearest.name || 'Unnamed Place',
           address: nearest.vicinity || 'Unknown',
           rating: nearest.rating || 'N/A',
-          cuisine: nearest.types?.find(t => t.includes("restaurant") && t !== "restaurant")?.replace(/_/g, ' ') || 'Unknown Cuisine',
+          cuisine,
           photo: nearest.photos?.[0]?.getUrl({ maxWidth: 400 }) || null
         };
+
         destinationRef.current = { lat: loc.lat(), lng: loc.lng() };
         setRestaurantDetails(meta);
         placeDestinationMarker(destinationRef.current);
@@ -242,18 +292,18 @@ const MapComponent = () => {
 
   const startProximityWatcher = () => {
     const gmaps = window.google.maps;
-  
+
     if (watcherIdRef.current !== null) {
       navigator.geolocation.clearWatch(watcherIdRef.current);
     }
-  
+
     const watchId = navigator.geolocation.watchPosition(async (pos) => {
       const userPos = new gmaps.LatLng(pos.coords.latitude, pos.coords.longitude);
       const destPos = new gmaps.LatLng(destinationRef.current.lat, destinationRef.current.lng);
       const distance = gmaps.geometry.spherical.computeDistanceBetween(userPos, destPos);
-  
+
       if (!restaurantDetails || !restaurantDetails.name || restaurantDetails.name === 'Unknown') return;
-  
+
       if (distance < 100 && !hasPrompted.current) {
         hasPrompted.current = true;
         const alreadyVisited = await checkIfVisitedToday();
@@ -265,10 +315,10 @@ const MapComponent = () => {
       maximumAge: 10000,
       timeout: 10000
     });
-  
+
     watcherIdRef.current = watchId;
   };
-  
+
   const checkIfVisitedToday = async () => {
     if (!user || !restaurantDetails?.name) return false;
 
@@ -292,9 +342,9 @@ const MapComponent = () => {
 
   const showRatingPrompt = () => {
     if (!restaurantDetails || !restaurantDetails.name) return;
-    setShowModal(true); 
+    setShowModal(true);
   };
-  
+
   const handleRatingSubmit = () => {
     if (pendingRating >= 1 && pendingRating <= 5) {
       submitRating(pendingRating);
@@ -315,10 +365,11 @@ const MapComponent = () => {
       placeName: restaurantDetails.name,
       address: restaurantDetails.address,
       cuisine: restaurantDetails.cuisine,
+      allCuisines: restaurantDetails.cuisine?.split(',').map(c => c.trim()) ?? [],
       rating,
       timestamp: now,
-      lat: destinationRef.current.lat,  
-      lng: destinationRef.current.lng   
+      lat: destinationRef.current.lat,
+      lng: destinationRef.current.lng
     });
 
     alert('✅ Thanks for rating!');

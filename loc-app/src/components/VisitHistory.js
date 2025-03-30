@@ -31,21 +31,21 @@ const VisitHistory = () => {
         setLoading(false);
         return;
       }
-  
+
       try {
         const position = await new Promise((resolve, reject) =>
           navigator.geolocation.getCurrentPosition(resolve, reject)
         );
-  
+
         const userCoords = {
           lat: position.coords.latitude,
           lng: position.coords.longitude,
         };
         setUserLocation(userCoords);
-  
+
         const visitsRef = collection(db, `visitHistory/${user.uid}/visits`);
         const snapshot = await getDocs(visitsRef);
-  
+
         const data = snapshot.docs.map((doc) => {
           const visit = doc.data();
           return {
@@ -54,7 +54,7 @@ const VisitHistory = () => {
             timestamp: visit.timestamp?.toDate?.().toLocaleString() || 'Unknown',
           };
         });
-  
+
         setVisits(data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
       } catch (err) {
         console.error('Failed to fetch visit history or geolocation:', err.message);
@@ -62,10 +62,10 @@ const VisitHistory = () => {
         setLoading(false);
       }
     };
-  
+
     fetchVisitHistory();
   }, []); // ✅ empty dependency to run only on mount
-  
+
   return (
     <div className="container-fluid text-center">
       <div className="row align-items-center position-relative">
@@ -97,9 +97,23 @@ const VisitHistory = () => {
                 <div key={visit.id} className="list-group-item">
                   <h6 className="mb-1">{visit.placeName}</h6>
                   <p className="mb-1 text-muted">{visit.address}</p>
-                  <small className="text-muted">
+                  <small className="text-muted d-block">
                     ⭐ {visit.rating} • {visit.cuisine} • {visit.timestamp}
                   </small>
+                  {visit.allCuisines && visit.allCuisines.length > 0 && (
+                    <div className="mt-1">
+                      <strong className="d-block">Cuisines:</strong>
+                      <div className="d-flex flex-wrap gap-1">
+                        {/* <p className="mt-1 mb-0">
+                          <strong>Cuisines:</strong> {visit.allCuisines.join(', ')}
+                        </p> */}
+
+                        {visit.allCuisines.map((cuisine, i) => (
+                          <span key={i} className="badge bg-dark">{cuisine}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                 </div>
               ))}
